@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "agora-backend",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
