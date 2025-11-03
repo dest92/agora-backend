@@ -1,0 +1,42 @@
+meta {
+  name: Workspaces - Create Workspace
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{BASE_URL}}/workspaces
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+body:json {
+  {
+    "name": "My Workspace"
+  }
+}
+
+tests {
+  test("Status should be 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should contain workspace data", function() {
+    const body = res.getBody();
+    expect(body.id).to.be.a("string");
+    expect(body.name).to.equal("My Workspace");
+    expect(body.ownerId).to.be.a("string");
+    expect(body.createdAt).to.be.a("string");
+  });
+  
+  test("Should save workspace ID for other requests", function() {
+    const body = res.getBody();
+    if (body.id) {
+      bru.setVar("WORKSPACE_ID", body.id);
+    }
+  });
+}

@@ -1,0 +1,42 @@
+meta {
+  name: Sessions - Create Session
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{BASE_URL}}/workspaces/{{WORKSPACE_ID}}/sessions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+body:json {
+  {
+    "title": "Planning Session"
+  }
+}
+
+tests {
+  test("Status should be 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should contain session data", function() {
+    const body = res.getBody();
+    expect(body.id).to.be.a("string");
+    expect(body.title).to.equal("Planning Session");
+    expect(body.workspaceId).to.equal(bru.getVar("WORKSPACE_ID"));
+    expect(body.createdAt).to.be.a("string");
+  });
+  
+  test("Should save session ID for other requests", function() {
+    const body = res.getBody();
+    if (body.id) {
+      bru.setVar("SESSION_ID", body.id);
+    }
+  });
+}

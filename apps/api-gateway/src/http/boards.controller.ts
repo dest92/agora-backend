@@ -13,10 +13,17 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import {
-  CreateCardDto,
   UpdateCardDto,
   ListCardsQuery,
 } from '@app/lib-contracts';
+
+// Temporary inline DTO until lib-contracts is properly structured
+class CreateCardDto {
+  content!: string;
+  priority?: string;
+  position?: number;
+  laneId?: string;
+}
 
 @Controller('boards')
 export class BoardsController {

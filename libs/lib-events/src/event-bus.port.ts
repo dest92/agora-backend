@@ -4,6 +4,7 @@ export interface DomainEvent {
   meta?: {
     boardId?: string;
     workspaceId?: string;
+    sessionId?: string;
     occurredAt: string;
   };
 }
@@ -14,4 +15,5 @@ export interface EventBus {
     pattern: string,
     handler: (event: DomainEvent) => Promise<void> | void,
   ): Promise<void>;
+  ping(): Promise<boolean>;
 }

@@ -1,0 +1,26 @@
+meta {
+  name: Tags - Unassign Tag
+  type: http
+  seq: 16
+}
+
+delete {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards/{{CARD_ID}}/tags/{{TAG_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should confirm unassignment", function() {
+    const body = res.getBody();
+    expect(body.unassigned).to.equal(true);
+  });
+}

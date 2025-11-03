@@ -22,8 +22,10 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/jest/bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "ts-node e2e/hardening-tests.ts",
+    "test:e2e:smoke": "ts-node e2e/smoke-tests.ts",
+    "test:e2e:jest": "jest --config ./test/jest-e2e.json",
     "smoke-test": "node scripts/smoke-test.js"
   },
   "engines": {
@@ -31,6 +33,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.17",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.1",
@@ -38,6 +41,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.8",
     "@supabase/supabase-js": "^2.39.3",
+    "axios": "^1.13.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "concurrently": "^9.2.1",
@@ -49,6 +53,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.1",
+    "@socket.io/redis-adapter": "^8.3.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -62,7 +67,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.5",
-    "@types/node": "^22.10.7",
+    "@types/node": "^22.19.0",
     "@types/pg": "^8.10.9",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
@@ -71,6 +76,7 @@
     "globals": "^15.14.0",
     "jest": "^29.7.0",
     "prettier": "^3.4.2",
+    "socket.io-client": "^4.8.1",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",

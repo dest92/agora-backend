@@ -1,11 +1,27 @@
 import { NestFactory } from '@nestjs/core';
+import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { CollabModule } from './collab.module';
 
+/**
+ * Microservices: TCP transport para comunicación interna
+ * Cliente-Servidor: Gateway HTTP → Collab TCP
+ */
+
 async function bootstrap() {
-  const app = await NestFactory.create(CollabModule);
+  const port = parseInt(process.env.COLLAB_PORT || '3012');
   
-  const port = process.env.COLLAB_PORT || 3012;
-  await app.listen(port);
-  console.log(`Collab Service listening on port ${port}`);
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+    CollabModule,
+    {
+      transport: Transport.TCP,
+      options: {
+        host: 'localhost',
+        port: port,
+      },
+    },
+  );
+
+  await app.listen();
+  console.log(`Collab Service (TCP) listening on port ${port}`);
 }
 bootstrap();

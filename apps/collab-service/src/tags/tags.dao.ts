@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { PgService } from '@app/lib-db';
-import { sql } from '@app/lib-db';
+import { PgService, sql } from '@app/lib-db';
+
+/**
+ * DAO Pattern: SQL parametrizado sin ORM
+ * Singleton: PgService inyectado como @Global
+ */
 
 interface TagRow {
   id: string;
@@ -18,7 +22,15 @@ interface CardTagRow {
 export class TagsDao {
   constructor(private readonly pg: PgService) {}
 
-  async createTag(boardId: string, label: string, color?: string): Promise<TagRow> {
+  /**
+   * Crear tag con ON CONFLICT para unicidad por (board_id, label)
+   * Patrón: Upsert con COALESCE para preservar color existente
+   */
+  async tagsCreate(
+    boardId: string,
+    label: string,
+    color?: string,
+  ): Promise<TagRow> {
     const query = sql`
       INSERT INTO boards.tags (board_id, label, color)
       VALUES (${boardId}, ${label}, ${color || null})
@@ -30,7 +42,10 @@ export class TagsDao {
     return result.rows[0];
   }
 
-  async listTags(boardId: string): Promise<TagRow[]> {
+  /**
+   * Listar tags del board ordenados alfabéticamente
+   */
+  async tagsList(boardId: string): Promise<TagRow[]> {
     const query = sql`
       SELECT id, board_id, label, color
       FROM boards.tags
@@ -41,7 +56,11 @@ export class TagsDao {
     return result.rows;
   }
 
-  async assignTag(cardId: string, tagId: string): Promise<CardTagRow | null> {
+  /**
+   * Asignar tag a card con ON CONFLICT DO NOTHING para idempotencia
+   * Patrón: Pivot table con constraint unique(card_id, tag_id)
+   */
+  async tagAssign(cardId: string, tagId: string): Promise<CardTagRow | null> {
     const query = sql`
       INSERT INTO boards.card_tags (card_id, tag_id)
       VALUES (${cardId}, ${tagId})
@@ -52,7 +71,10 @@ export class TagsDao {
     return result.rows[0] || null;
   }
 
-  async unassignTag(cardId: string, tagId: string): Promise<void> {
+  /**
+   * Desasignar tag de card
+   */
+  async tagUnassign(cardId: string, tagId: string): Promise<void> {
     const query = sql`
       DELETE FROM boards.card_tags 
       WHERE card_id = ${cardId} AND tag_id = ${tagId}

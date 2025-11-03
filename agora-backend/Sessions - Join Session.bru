@@ -1,0 +1,26 @@
+meta {
+  name: Sessions - Join Session
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{BASE_URL}}/sessions/{{SESSION_ID}}/join
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should confirm join", function() {
+    const body = res.getBody();
+    expect(body.joined).to.equal(true);
+  });
+}

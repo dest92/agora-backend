@@ -1,0 +1,37 @@
+meta {
+  name: Tags - List Tags
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/tags
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should be an array", function() {
+    const body = res.getBody();
+    expect(body).to.be.an("array");
+  });
+  
+  test("Should contain created tag if TAG_ID exists", function() {
+    const body = res.getBody();
+    const tagId = bru.getVar("TAG_ID");
+    
+    if (tagId && body.length > 0) {
+      const foundTag = body.find(tag => tag.id === tagId);
+      expect(foundTag).to.not.be.undefined;
+      expect(foundTag.boardId).to.equal(bru.getVar("BOARD_ID"));
+    }
+  });
+}

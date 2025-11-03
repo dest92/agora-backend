@@ -1,0 +1,37 @@
+meta {
+  name: Workspaces - List Workspaces
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{BASE_URL}}/workspaces
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should be an array", function() {
+    const body = res.getBody();
+    expect(body).to.be.an("array");
+  });
+  
+  test("Should contain created workspace if WORKSPACE_ID exists", function() {
+    const body = res.getBody();
+    const workspaceId = bru.getVar("WORKSPACE_ID");
+    
+    if (workspaceId && body.length > 0) {
+      const foundWorkspace = body.find(ws => ws.id === workspaceId);
+      expect(foundWorkspace).to.not.be.undefined;
+      expect(foundWorkspace.name).to.be.a("string");
+    }
+  });
+}

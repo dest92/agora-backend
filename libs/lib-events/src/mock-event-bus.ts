@@ -17,4 +17,9 @@ export class MockEventBus implements EventBus {
     console.log(`[MOCK EVENT BUS] Subscribed to pattern: ${pattern}`);
     // Mock implementation - no actual subscription
   }
+
+  async ping(): Promise<boolean> {
+    // Mock implementation always returns true
+    return true;
+  }
 }

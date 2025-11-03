@@ -55,8 +55,18 @@ export class BoardsController {
     return this.commandService.unarchiveCard(data.cardId, data.boardId);
   }
 
-  @MessagePattern('projections.refresh')
-  async refreshProjections(@Payload() data: { boardId: string }) {
-    return this.commandService.refreshProjections();
+  @MessagePattern({ cmd: 'boards.refresh_projections' })
+  async refreshProjections(): Promise<{ refreshed: boolean }> {
+    await this.commandService.refreshProjections();
+    return { refreshed: true };
+  }
+
+  /**
+   * Hardening: Health Check Handler
+   * Microservicios: TCP health.ping response
+   */
+  @MessagePattern({ cmd: 'health.ping' })
+  healthPing(): { ok: boolean } {
+    return { ok: true };
   }
 }

@@ -1,11 +1,27 @@
 import { NestFactory } from '@nestjs/core';
+import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { BoardsModule } from './boards.module';
 
+/**
+ * Microservices: TCP transport para comunicación interna
+ * Cliente-Servidor: Gateway HTTP → Boards TCP
+ */
+
 async function bootstrap() {
-  const app = await NestFactory.create(BoardsModule);
+  const port = parseInt(process.env.BOARDS_PORT || '3011');
   
-  const port = process.env.BOARDS_PORT || 3011;
-  await app.listen(port);
-  console.log(`Boards Service listening on port ${port}`);
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+    BoardsModule,
+    {
+      transport: Transport.TCP,
+      options: {
+        host: 'localhost',
+        port: port,
+      },
+    },
+  );
+
+  await app.listen();
+  console.log(`Boards Service (TCP) listening on port ${port}`);
 }
 bootstrap();

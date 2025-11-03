@@ -1,0 +1,43 @@
+meta {
+  name: Tags - Create Tag
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/tags
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+body:json {
+  {
+    "label": "Bug",
+    "color": "#ff0000"
+  }
+}
+
+tests {
+  test("Status should be 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should contain tag data", function() {
+    const body = res.getBody();
+    expect(body.id).to.be.a("string");
+    expect(body.boardId).to.equal(bru.getVar("BOARD_ID"));
+    expect(body.label).to.equal("Bug");
+    expect(body.color).to.equal("#ff0000");
+  });
+  
+  test("Should save tag ID for other requests", function() {
+    const body = res.getBody();
+    if (body.id) {
+      bru.setVar("TAG_ID", body.id);
+    }
+  });
+}
