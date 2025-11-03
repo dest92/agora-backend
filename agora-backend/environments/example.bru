@@ -1,24 +1,28 @@
 vars {
   BASE_URL: http://localhost:3000
-  GATEWAY_URL: http://localhost:3000
-  BOARDS_URL: http://localhost:3011
-  COLLAB_URL: http://localhost:3012
-  SESSIONS_URL: http://localhost:3013
-  NOTIFICATIONS_URL: http://localhost:3014
-  JWT_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-  BOARD_ID: 550e8400-e29b-41d4-a716-446655440000
-  LANE_ID: 660e8400-e29b-41d4-a716-446655440001
-  CARD_ID: 
-  COMMENT_ID: 
-  VOTE_ID: 
-  TAG_ID: 
-  USER_ID: 880e8400-e29b-41d4-a716-446655440003
+  SUPABASE_URL: https://your-project.supabase.co
+  SUPABASE_ANON_KEY: your-supabase-anon-key
+  JWT: 
+  REFRESH_TOKEN: 
+  USER_ID: 
+  EMAIL: user@example.com
+  PASSWORD: YourPassword123!
   WORKSPACE_ID: 
+  BOARD_ID: 
+  CARD_ID: 
   SESSION_ID: 
+  LANE_ID: 
 }
 
-// Instructions:
-// 1. Copy this file to dev.bru
-// 2. Replace JWT_TOKEN with your actual Supabase JWT token
-// 3. Replace BOARD_ID with an existing board UUID from your database
-// 4. CARD_ID, COMMENT_ID, VOTE_ID, TAG_ID will be set automatically by requests
+docs {
+  # Example Environment
+  
+  Template environment file. Copy values from your .env file:
+  
+  - BASE_URL: Your API Gateway URL (default: http://localhost:3000)
+  - SUPABASE_URL: From SUPABASE_URL in .env
+  - SUPABASE_ANON_KEY: From SUPABASE_ANON_KEY in .env
+  - EMAIL/PASSWORD: Test user credentials
+  
+  Other variables will be populated automatically during test execution.
+}

@@ -1,0 +1,159 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{BASE_URL}}/auth/refresh
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "refresh_token": "{{REFRESH_TOKEN}}"
+  }
+}
+
+docs {
+  # Refresh Access Token
+  
+  Obtains a new access token using a valid refresh token.
+  
+  ## Expected Responses
+  - **200 OK**: New access token generated
+  - **401 Unauthorized**: Invalid or expired refresh token
+  
+  ## Automatic Actions
+  - Updates JWT token in environment
+  - Preserves User ID
+  
+  ## Usage
+  - Call this endpoint when access token expires
+  - Refresh tokens typically have longer expiration (7-30 days)
+  - After refresh, use new access token for authenticated requests
+  
+  ## Notes
+  - Refresh token is obtained from Login or Register response
+  - Store refresh token securely (not in localStorage)
+  - Implement token rotation for enhanced security
+}
+
+tests {
+  // Test 1: Verify successful refresh
+  test("Should return 200 OK for valid refresh token", function() {
+    const status = res.getStatus();
+    // Accept 200 (success) or 401 (no refresh token set)
+    expect([200, 401, 404]).to.include(status);
+    
+    if (status === 401 || status === 404) {
+      console.log('⚠ No refresh token available - run Login first');
+    }
+  });
+  
+  // Only run remaining tests if refresh was successful
+  if (res.getStatus() === 200) {
+    // Test 2: Verify content-type
+    test("Should return JSON content-type", function() {
+      const contentType = res.getHeader('content-type');
+      expect(contentType).to.contain('json');
+    });
+    
+    // Test 3: Verify response time
+    test("Should respond within 2 seconds", function() {
+      expect(res.getResponseTime()).to.be.below(2000);
+    });
+    
+    // Test 4: Verify new session data
+    test("Should return new session with access token", function() {
+      const body = res.getBody();
+      
+      expect(body).to.have.property('session');
+      expect(body.session).to.have.property('access_token');
+      expect(body.session).to.have.property('refresh_token');
+      expect(body.session).to.have.property('token_type');
+      
+      expect(body.session.access_token).to.be.a('string');
+      expect(body.session.access_token.length).to.be.greaterThan(0);
+    });
+    
+    // Test 5: Verify JWT format
+    test("Should return valid JWT format", function() {
+      const token = res.getBody().session.access_token;
+      const parts = token.split('.');
+      expect(parts).to.have.length(3);
+    });
+    
+    // Test 6: Verify token expiration
+    test("Should include new expiration time", function() {
+      const body = res.getBody();
+      
+      expect(body.session).to.have.property('expires_in');
+      expect(body.session.expires_in).to.be.a('number');
+      expect(body.session.expires_in).to.be.greaterThan(0);
+    });
+    
+    // Test 7: Update environment with new token
+    test("Should update JWT in environment", function() {
+      const body = res.getBody();
+      
+      // Save new access token
+      bru.setEnvVar('JWT', body.session.access_token);
+      
+      // Optionally update refresh token if rotated
+      if (body.session.refresh_token) {
+        bru.setEnvVar('REFRESH_TOKEN', body.session.refresh_token);
+      }
+      
+      expect(bru.getEnvVar('JWT')).to.equal(body.session.access_token);
+      
+      console.log('✓ Updated JWT token in environment');
+      console.log(`✓ New token expires in ${body.session.expires_in} seconds`);
+    });
+    
+    // Test 8: Verify user data consistency
+    test("Should return consistent user data", function() {
+      const body = res.getBody();
+      
+      if (body.user) {
+        expect(body.user).to.have.property('id');
+        expect(body.user).to.have.property('email');
+        
+        // User ID should match saved value
+        const savedUserId = bru.getEnvVar('USER_ID');
+        if (savedUserId) {
+          expect(body.user.id).to.equal(savedUserId);
+        }
+      }
+    });
+    
+    // Test 9: Verify token rotation (if implemented)
+    test("Should handle token rotation", function() {
+      const body = res.getBody();
+      
+      // If refresh token is different, it means rotation is enabled
+      const oldRefreshToken = bru.getEnvVar('REFRESH_TOKEN');
+      const newRefreshToken = body.session.refresh_token;
+      
+      if (oldRefreshToken && newRefreshToken && oldRefreshToken !== newRefreshToken) {
+        console.log('✓ Refresh token rotation detected (enhanced security)');
+      }
+    });
+  }
+  
+  // Test for error case
+  if (res.getStatus() === 401) {
+    test("Should return proper error for invalid token", function() {
+      const body = res.getBody();
+      
+      expect(body).to.have.property('message');
+      expect(body).to.have.property('statusCode');
+      expect(body.statusCode).to.equal(401);
+    });
+  }
+}

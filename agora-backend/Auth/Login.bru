@@ -1,0 +1,184 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{EMAIL}}",
+    "password": "{{PASSWORD}}"
+  }
+}
+
+docs {
+  # Login User
+  
+  Authenticates an existing user and returns a JWT access token.
+  
+  ## Expected Responses
+  - **200 OK**: Successful authentication
+  - **401 Unauthorized**: Invalid credentials
+  - **400 Bad Request**: Missing or invalid request body
+  
+  ## Automatic Actions
+  - Saves JWT token to `JWT` variable
+  - Saves User ID to `USER_ID` variable
+  - Token is automatically used in subsequent authenticated requests
+  
+  ## Notes
+  - Token expires based on Supabase configuration
+  - Use refresh token to obtain new access token when expired
+  - All protected endpoints require this JWT in Authorization header
+}
+
+tests {
+  // Test 1: Verify successful authentication
+  test("Should return 200 OK for valid credentials", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  // Test 2: Verify content-type header
+  test("Should return JSON content-type", function() {
+    const contentType = res.getHeader('content-type');
+    expect(contentType).to.contain('json');
+  });
+  
+  // Test 3: Verify response time
+  test("Should respond within 2 seconds", function() {
+    expect(res.getResponseTime()).to.be.below(2000);
+  });
+  
+  // Test 4: Verify user object structure
+  test("Should return valid user object", function() {
+    const body = res.getBody();
+    
+    // Verify user object exists and has required properties
+    expect(body).to.have.property('user');
+    expect(body.user).to.be.an('object');
+    expect(body.user).to.have.property('id');
+    expect(body.user).to.have.property('email');
+    
+    // Verify email matches request
+    expect(body.user.email).to.equal(bru.getEnvVar('EMAIL'));
+    
+    // Verify user ID is UUID format
+    expect(body.user.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    
+    // Verify audience from JWT payload
+    const payload = JSON.parse(atob(body.accessToken.split('.')[1]));
+    expect(payload.aud).to.equal('authenticated');
+  });
+  
+  // Test 5: Verify session object structure
+  test("Should return valid session with tokens", function() {
+    const body = res.getBody();
+    
+    // Verify token structure (custom backend format)
+    expect(body).to.have.property('accessToken');
+    expect(body).to.have.property('refreshToken');
+    
+    // Verify access token
+    expect(body.accessToken).to.be.a('string');
+    expect(body.accessToken.length).to.be.greaterThan(0);
+    
+    // Verify refresh token
+    expect(body.refreshToken).to.be.a('string');
+    expect(body.refreshToken.length).to.be.greaterThan(0);
+  });
+  
+  // Test 6: Verify JWT token format
+  test("Should return valid JWT token format", function() {
+    const token = res.getBody().accessToken;
+    
+    // JWT has 3 parts separated by dots: header.payload.signature
+    const parts = token.split('.');
+    expect(parts).to.have.length(3);
+    
+    // Each part should be base64url encoded (not empty)
+    parts.forEach((part, index) => {
+      expect(part.length).to.be.greaterThan(0, `JWT part ${index} should not be empty`);
+    });
+  });
+  
+  // Test 7: Verify token expiration
+  test("Should include token expiration time", function() {
+    const body = res.getBody();
+    
+    // Decode JWT to get expiration from payload
+    const payload = JSON.parse(atob(body.accessToken.split('.')[1]));
+    
+    expect(payload).to.have.property('exp');
+    expect(payload.exp).to.be.a('number');
+    expect(payload.exp).to.be.greaterThan(Date.now() / 1000);
+  });
+  
+  // Test 8: Save authentication data
+  test("Should save authentication data to environment", function() {
+    const body = res.getBody();
+    
+    // Save JWT token, refresh token, and user ID for subsequent requests
+    bru.setEnvVar('JWT', body.accessToken);
+    bru.setEnvVar('REFRESH_TOKEN', body.refreshToken);
+    bru.setEnvVar('USER_ID', body.user.id);
+    
+    // Verify variables were saved correctly
+    expect(bru.getEnvVar('JWT')).to.equal(body.accessToken);
+    expect(bru.getEnvVar('REFRESH_TOKEN')).to.equal(body.refreshToken);
+    expect(bru.getEnvVar('USER_ID')).to.equal(body.user.id);
+    
+    // Decode JWT to get expiration
+    const payload = JSON.parse(atob(body.accessToken.split('.')[1]));
+    const expiresIn = payload.exp - Math.floor(Date.now() / 1000);
+    
+    console.log('✓ Saved JWT token, Refresh token, and User ID to environment');
+    console.log(`✓ Token expires in ${expiresIn} seconds`);
+  });
+  
+  // Test 9: Verify user metadata
+  test("Should include user metadata and timestamps", function() {
+    const body = res.getBody();
+    
+    // Backend returns simplified user object
+    // Verify basic properties exist
+    expect(body.user).to.have.property('id');
+    expect(body.user).to.have.property('email');
+    
+    // Decode JWT to verify metadata in token payload
+    const payload = JSON.parse(atob(body.accessToken.split('.')[1]));
+    expect(payload).to.have.property('role');
+    expect(payload.role).to.be.a('string');
+  });
+  
+  // Test 10: Verify no sensitive data in response
+  test("Should not expose sensitive data", function() {
+    const body = res.getBody();
+    const bodyStr = JSON.stringify(body);
+    
+    // Ensure password is not in response
+    expect(bodyStr.toLowerCase()).to.not.contain(bru.getEnvVar('PASSWORD').toLowerCase());
+    
+    // Ensure no database credentials
+    expect(bodyStr).to.not.contain('DATABASE_URL');
+    expect(bodyStr).to.not.contain('REDIS_PASSWORD');
+  });
+  
+  // Test 11: Verify session consistency
+  test("Should maintain session consistency", function() {
+    const body = res.getBody();
+    
+    // User ID in JWT payload should match user ID in user object
+    const payload = JSON.parse(atob(body.accessToken.split('.')[1]));
+    expect(payload.sub).to.equal(body.user.id);
+  });
+}

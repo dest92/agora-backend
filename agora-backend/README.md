@@ -1,154 +1,180 @@
 # Agora Backend - Bruno API Collection
 
-Esta colección de Bruno contiene todos los endpoints implementados en la arquitectura de microservicios de Agora Backend.
+Colección completa de Bruno para probar toda la funcionalidad del backend de Agora, desde autenticación hasta funcionalidades colaborativas.
 
-## 🚀 Setup Rápido
+## 🚀 Configuración Inicial
 
-### 1. Configurar Variables
+### 1. Instalar Bruno
 ```bash
-# Copiar archivo de ejemplo
-cp environments/example.bru environments/dev.bru
+# Descargar Bruno desde https://usebruno.com/
+# O instalar via package manager
+npm install -g @usebruno/cli
 ```
 
-### 2. Obtener JWT Token
-1. Ve a tu aplicación Supabase
-2. Autentica un usuario
-3. Copia el JWT token del localStorage o developer tools
-4. Pégalo en `environments/dev.bru` en la variable `JWT_TOKEN`
+### 2. Configurar Entorno
+1. Abrir Bruno y importar la colección desde la carpeta `bruno/`
+2. Seleccionar el entorno `dev` 
+3. Las variables ya están configuradas con valores del `.env` actual
 
-### 3. Configurar Board ID
-1. Asegúrate de tener un board creado en tu base de datos
-2. Copia el UUID del board
-3. Pégalo en `environments/dev.bru` en la variable `BOARD_ID`
-
-## 🏗️ Arquitectura de Puertos
-
-### URLs Configuradas
-- **GATEWAY_URL**: `http://localhost:3000` - API Gateway (punto de entrada único)
-- **BOARDS_URL**: `http://localhost:3011` - Boards Service (directo)
-- **COLLAB_URL**: `http://localhost:3012` - Collab Service (directo)
-- **SESSIONS_URL**: `http://localhost:3013` - Sessions Service (directo)
-- **NOTIFICATIONS_URL**: `http://localhost:3014` - Notifications Service (directo)
-
-## 📋 Endpoints Incluidos
-
-### Core (M0-M1)
-- ✅ **Health Check** - `GET /health` (público)
-- ✅ **Create Card** - `POST /boards/:boardId/cards`
-- ✅ **List Cards** - `GET /boards/:boardId/cards`
-
-### Cards Management (M2)
-- ✅ **Update Card** - `PATCH /boards/:boardId/cards/:cardId`
-- ✅ **Archive Card** - `POST /boards/:boardId/cards/:cardId/archive`
-- ✅ **Unarchive Card** - `POST /boards/:boardId/cards/:cardId/unarchive`
-- ✅ **Refresh Projections** - `POST /boards/:boardId/projections/refresh`
-
-### Collaboration (M3)
-- ✅ **Add Comment** - `POST /boards/:boardId/cards/:cardId/comments`
-- ✅ **List Comments** - `GET /boards/:boardId/cards/:cardId/comments`
-- ✅ **Vote Up** - `POST /boards/:boardId/cards/:cardId/votes/up`
-- ✅ **Vote Down** - `POST /boards/:boardId/cards/:cardId/votes/down`
-- ✅ **Remove Vote** - `DELETE /boards/:boardId/cards/:cardId/votes`
-
-## 🧪 Testing Flow
-
-### Colecciones Organizadas
-
-#### 1. **Services Health** - Verificar que todos los servicios estén funcionando
-- Gateway Health (puerto 3000)
-- Boards Service Health (puerto 3011)
-- Collab Service Health (puerto 3012)
-- Sessions Service Health (puerto 3013)
-- Notifications Service Health (puerto 3014)
-
-#### 2. **Gateway Endpoints** - Testing a través del API Gateway (recomendado)
-- Health Check, Create Card, List Cards, etc.
-- **Ventaja**: Simula el flujo real del frontend
-
-#### 3. **Direct Services** - Testing directo a cada microservicio
-- Boards - Direct Create Card (puerto 3011)
-- Collab - Direct Add Comment (puerto 3012)
-- **Ventaja**: Debugging y testing aislado de servicios
-
-#### 4. **Comparison** - Comparar Gateway vs Direct
-- Verificar que el routing funcione correctamente
-- Medir overhead de routing
-
-### Flujo Recomendado
-1. **Services Health** - Verificar que todos los servicios estén UP
-2. **Create Card** (via Gateway) - Crear una card (guarda CARD_ID automáticamente)
-3. **Direct Create Card** (via Boards Service) - Comparar respuesta directa
-4. **List Cards** - Verificar que ambas cards aparezcan
-5. **Add Comment** - Agregar comentario a la card
-6. **Direct Add Comment** - Probar servicio directo
-7. **Vote Up/Down/Remove** - Testing completo de votación
-8. **Archive/Unarchive** - Gestión de archivado
-
-### Variables Automáticas
-Los siguientes IDs se guardan automáticamente para usar en requests posteriores:
-- `CARD_ID` - Se guarda al crear una card
-- `COMMENT_ID` - Se guarda al crear un comentario  
-- `VOTE_ID` - Se guarda al votar
-
-## 🔧 Tests Incluidos
-
-Cada request incluye tests automáticos que verifican:
-- ✅ Status codes correctos (200, 201)
-- ✅ Estructura de respuesta esperada
-- ✅ Valores de campos específicos
-- ✅ Guardado automático de IDs para requests posteriores
-
-## 🌐 Real-time Events
-
-Mientras ejecutas los requests, puedes monitorear eventos en tiempo real:
-
-### WebSocket Connection
-```javascript
-const socket = io('http://localhost:3000', {
-  query: { boardId: 'tu-board-id' }
-});
-
-// Escuchar eventos
-socket.on('card:created', (data) => console.log('Card created:', data));
-socket.on('card:updated', (data) => console.log('Card updated:', data));
-socket.on('card:archived', (data) => console.log('Card archived:', data));
-socket.on('comment:added', (data) => console.log('Comment added:', data));
-socket.on('vote:cast', (data) => console.log('Vote cast:', data));
-socket.on('vote:removed', (data) => console.log('Vote removed:', data));
+### 3. Variables de Entorno
+```
+BASE_URL=http://localhost:3000
+SUPABASE_URL=https://nvyxecumnhksxkaydfxi.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+JWT=                    # Se llena automáticamente tras login
+USER_ID=               # Se llena automáticamente tras login
+EMAIL=test@agora.dev   # Cambiar por tu email de prueba
+PASSWORD=TestPassword123!  # Cambiar por tu password
+WORKSPACE_ID=          # Se llena automáticamente
+BOARD_ID=              # Se llena automáticamente
+CARD_ID=               # Se llena automáticamente
+SESSION_ID=            # Se llena automáticamente
 ```
 
-### Redis Monitoring
-```bash
-# En otra terminal
-redis-cli MONITOR
-```
+## 📋 Flujo de Pruebas
+
+### 1. Health Checks
+- **Gateway Health**: Verifica que el gateway esté funcionando
+- **Services Health Matrix**: Verifica todos los microservicios + Redis
+
+### 2. Authentication
+- **Register**: Crear nueva cuenta con validaciones completas
+- **Login**: Autenticarse y obtener JWT con tests exhaustivos
+- **Login Invalid Credentials**: Probar manejo de errores de autenticación
+- **Test Auth**: Verificar que el JWT funciona correctamente
+- **Unauthorized Test**: Verificar que endpoints protegidos requieren auth
+- **Refresh Token**: Renovar access token usando refresh token
+
+### 3. Workspaces
+- **List Workspaces**: Ver workspaces disponibles
+- **Create Workspace**: Crear nuevo workspace
+- **Get Workspace**: Obtener detalles del workspace
+
+### 4. Boards & Cards
+- **Create Board**: Crear tablero en workspace
+- **Create Card**: Crear tarjeta en tablero
+- **List Cards**: Listar todas las tarjetas
+- **Update Card**: Modificar contenido de tarjeta
+- **Archive/Unarchive Card**: Archivar y desarchivar
+- **Refresh Projections**: Refrescar proyecciones CQRS
+
+### 5. Sessions (Colaboración)
+- **Create Session**: Crear sesión colaborativa
+- **Join Session**: Unirse a sesión
+- **Get Session**: Ver detalles y participantes
+- **Leave Session**: Salir de sesión
+
+### 6. Tags & Assignees
+- **Create Tag**: Crear etiqueta para tablero
+- **List Tags**: Ver todas las etiquetas
+- **Assign User**: Asignar usuario a tarjeta
+- **List Assignees**: Ver asignaciones de tarjeta
+
+## 🔄 Orden de Ejecución Recomendado
+
+1. **Health Checks** (verificar que todo esté funcionando)
+2. **Auth/Register** o **Auth/Login** (obtener JWT)
+3. **Workspaces/Create Workspace** (crear contexto)
+4. **Boards/Create Board** (crear tablero)
+5. **Boards/Create Card** (crear tarjeta)
+6. **Sessions/Create Session** (crear sesión colaborativa)
+7. Ejecutar el resto según necesidades
+
+## ✅ Validaciones Automáticas
+
+Cada request incluye tests que verifican:
+- **Status codes** correctos
+- **Content-Type** apropiado
+- **Estructura de respuesta** válida
+- **Datos guardados** correctamente
+- **Variables de entorno** actualizadas automáticamente
+
+## 🏗️ Arquitectura Probada
+
+La colección valida los siguientes patrones arquitectónicos:
+
+### API Gateway Pattern
+- Único punto de entrada HTTP
+- Routing a microservicios TCP
+- Manejo centralizado de auth
+
+### Microservicios
+- **boards-service**: Gestión de tableros y tarjetas
+- **sessions-service**: Sesiones colaborativas
+- **collab-service**: Funcionalidades colaborativas
+- **notifications-service**: Notificaciones
+
+### EDA (Event-Driven Architecture)
+- Redis Pub/Sub para eventos
+- EventBus como backbone
+- Observer pattern para WebSocket
+
+### Auth & Security
+- JWT con Supabase
+- Global AuthGuard
+- Endpoints públicos limitados
 
 ## 🚨 Troubleshooting
 
-### Error 401 (Unauthorized)
-- Verifica que `JWT_TOKEN` esté configurado correctamente
-- Asegúrate de que el token no haya expirado
-- Confirma que el token sea de Supabase y tenga el formato correcto
+### Error 401 en requests protegidos
+1. Ejecutar **Auth/Login** primero
+2. Verificar que `JWT` se guardó en variables
+3. Verificar que el token no expiró
 
-### Error 404 (Not Found)
-- Verifica que `BOARD_ID` exista en tu base de datos
-- Confirma que el servidor esté ejecutándose en `http://localhost:3000`
-- Asegúrate de que todos los servicios estén funcionando (`npm run dev:all`)
+### Error 404 en recursos
+1. Ejecutar requests de creación primero
+2. Verificar que IDs se guardaron en variables
+3. Verificar que el recurso existe
 
-### Error 500 (Internal Server Error)
-- Revisa los logs del servidor
-- Verifica que Redis esté conectado
-- Confirma que la base de datos esté accesible
+### Error de conexión
+1. Verificar que los servicios estén corriendo: `npm run dev:all`
+2. Verificar `BASE_URL` en variables de entorno
+3. Verificar que Redis esté conectado
 
-## 📊 Arquitectura
+### Variables no se guardan
+1. Verificar que los tests pasen correctamente
+2. Revisar la pestaña "Tests" en Bruno
+3. Verificar que la respuesta tenga la estructura esperada
 
-Esta colección prueba la arquitectura de microservicios:
-- **API Gateway** (puerto 3000) - HTTP + Socket.IO
-- **Boards Service** (puerto 3011) - Gestión de cards
-- **Collab Service** (puerto 3012) - Comments, votes, tags
-- **Redis EventBus** - Eventos en tiempo real
-- **Supabase** - Base de datos y autenticación
+## 📊 Evidencia de Pruebas
 
----
+Los tests generan evidencia automática de:
+- ✅ **Health Matrix**: Todos los servicios funcionando
+- ✅ **Auth Enforcement**: Endpoints protegidos requieren JWT
+- ✅ **CRUD Operations**: Crear, leer, actualizar, archivar
+- ✅ **Collaborative Features**: Sesiones y asignaciones
+- ✅ **Response Times**: Latencias de API
+- ✅ **Data Integrity**: Consistencia de datos
 
-**¡Happy Testing!** 🎉
+## 🔧 Comandos Útiles
+
+```bash
+# Ejecutar colección completa via CLI
+bru run --env dev
+
+# Ejecutar solo health checks
+bru run --env dev --folder "Health"
+
+# Ejecutar con output detallado
+bru run --env dev --output detailed
+
+# Generar reporte HTML
+bru run --env dev --reporter html --output report.html
+```
+
+## 📝 Notas Importantes
+
+- **Orden importa**: Algunos requests dependen de variables de requests anteriores
+- **Idempotencia**: Los requests están diseñados para ser re-ejecutables
+- **Cleanup**: No hay cleanup automático, los datos de prueba persisten
+- **Rate Limiting**: Respetar límites de Supabase si aplican
+- **Environment**: Usar `dev` para desarrollo local, crear otros entornos según necesidad
+
+## 🎯 Casos de Uso Cubiertos
+
+- [x] **Onboarding completo**: Registro → Login → Workspace → Board
+- [x] **Flujo colaborativo**: Crear sesión → Unirse → Colaborar
+- [x] **Gestión de contenido**: CRUD completo de tarjetas
+- [x] **Organización**: Tags y asignaciones
+- [x] **Monitoreo**: Health checks y métricas
+- [x] **Seguridad**: Auth enforcement y validaciones

@@ -1,4 +1,11 @@
-import { Controller, Get, Inject, Logger, HttpStatus, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  Logger,
+  HttpStatus,
+  Res,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom, timeout, catchError, of } from 'rxjs';
 import type { Response } from 'express';

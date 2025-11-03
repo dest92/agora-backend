@@ -1,0 +1,152 @@
+meta {
+  name: Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{EMAIL}}",
+    "password": "{{PASSWORD}}"
+  }
+}
+
+docs {
+  # Register New User
+  
+  Creates a new user account in the system using Supabase authentication.
+  
+  ## Expected Responses
+  - **201 Created**: New user successfully registered
+  - **400 Bad Request**: User already exists or validation error
+  
+  ## Automatic Actions
+  - Saves JWT token to `JWT` variable
+  - Saves User ID to `USER_ID` variable
+  
+  ## Notes
+  - If user already exists (400), proceed with Login request
+  - Password must meet Supabase requirements (min 6 chars)
+}
+
+tests {
+  // Test 1: Verify response status
+  test("Should return 201 for new user or 400 if exists", function() {
+    const status = res.getStatus();
+    expect([201, 400]).to.include(status);
+  });
+  
+  // Test 2: Verify content-type header
+  test("Should return JSON content-type", function() {
+    const contentType = res.getHeader('content-type');
+    expect(contentType).to.contain('json');
+  });
+  
+  // Test 3: Verify response time
+  test("Should respond within 3 seconds", function() {
+    expect(res.getResponseTime()).to.be.below(3000);
+  });
+  
+  // Test 4: Handle successful registration (201)
+  if (res.getStatus() === 201) {
+    test("Should return valid user object", function() {
+      const body = res.getBody();
+      
+      // Verify user object structure
+      expect(body).to.have.property('user');
+      expect(body.user).to.be.an('object');
+      expect(body.user).to.have.property('id');
+      expect(body.user).to.have.property('email');
+      
+      // Verify email matches request
+      expect(body.user.email).to.equal(bru.getEnvVar('EMAIL'));
+      
+      // Verify user ID is UUID format
+      expect(body.user.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    });
+    
+    test("Should return valid session with access token", function() {
+      const body = res.getBody();
+      
+      // Verify token structure (custom backend format)
+      expect(body).to.have.property('accessToken');
+      expect(body).to.have.property('refreshToken');
+      
+      // Verify token is not empty
+      expect(body.accessToken).to.be.a('string');
+      expect(body.accessToken.length).to.be.greaterThan(0);
+      
+      // Verify JWT format (3 parts separated by dots)
+      const tokenParts = body.accessToken.split('.');
+      expect(tokenParts).to.have.length(3);
+    });
+    
+    test("Should save authentication data to environment", function() {
+      const body = res.getBody();
+      
+      // Save JWT token and refresh token for subsequent requests
+      bru.setEnvVar('JWT', body.accessToken);
+      bru.setEnvVar('REFRESH_TOKEN', body.refreshToken);
+      bru.setEnvVar('USER_ID', body.user.id);
+      
+      // Verify variables were saved
+      expect(bru.getEnvVar('JWT')).to.equal(body.accessToken);
+      expect(bru.getEnvVar('REFRESH_TOKEN')).to.equal(body.refreshToken);
+      expect(bru.getEnvVar('USER_ID')).to.equal(body.user.id);
+      
+      console.log('✓ Saved JWT token, Refresh token, and User ID to environment');
+    });
+    
+    test("Should include user metadata", function() {
+      const body = res.getBody();
+      
+      // Verify user object has basic required properties
+      // Backend returns simplified user object (id, email only)
+      expect(body.user).to.have.property('id');
+      expect(body.user).to.have.property('email');
+      
+      // Optional: Decode JWT to verify aud claim
+      const payload = JSON.parse(atob(body.accessToken.split('.')[1]));
+      expect(payload.aud).to.equal('authenticated');
+    });
+  }
+  
+  // Test 5: Handle user already exists (400)
+  if (res.getStatus() === 400) {
+    test("Should return error message for existing user", function() {
+      const body = res.getBody();
+      
+      expect(body).to.have.property('message');
+      expect(body.message).to.be.a('string');
+      expect(body.message.toLowerCase()).to.match(/already|exist|duplicate/);
+      
+      console.log('⚠ User already exists - use Login endpoint instead');
+    });
+    
+    test("Should include error details", function() {
+      const body = res.getBody();
+      
+      expect(body).to.have.property('statusCode');
+      expect(body.statusCode).to.equal(400);
+    });
+  }
+  
+  // Test 6: Verify no sensitive data in response
+  test("Should not expose sensitive data", function() {
+    const body = res.getBody();
+    const bodyStr = JSON.stringify(body);
+    
+    // Ensure password is not in response
+    expect(bodyStr.toLowerCase()).to.not.contain(bru.getEnvVar('PASSWORD').toLowerCase());
+  });
+}
