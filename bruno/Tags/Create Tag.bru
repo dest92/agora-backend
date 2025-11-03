@@ -1,0 +1,54 @@
+meta {
+  name: Create Tag
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/tags
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "bruno-test",
+    "color": "#FF5733",
+    "description": "Tag created by Bruno tests"
+  }
+}
+
+tests {
+  test("Status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response contains tag data", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('id');
+    expect(body).to.have.property('name');
+    expect(body).to.have.property('color');
+    expect(body).to.have.property('boardId');
+    expect(body.name).to.equal('bruno-test');
+    expect(body.color).to.equal('#FF5733');
+    expect(body.boardId).to.equal(bru.getEnvVar('BOARD_ID'));
+  });
+  
+  test("Tag has required fields", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('createdAt');
+    expect(body).to.have.property('description');
+  });
+}

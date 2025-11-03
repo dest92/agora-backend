@@ -1,0 +1,56 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{EMAIL}}",
+    "password": "{{PASSWORD}}"
+  }
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response contains user data", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('user');
+    expect(body.user).to.have.property('id');
+    expect(body.user).to.have.property('email');
+    expect(body.user.email).to.equal(bru.getEnvVar('EMAIL'));
+  });
+  
+  test("Response contains access token", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('session');
+    expect(body.session).to.have.property('access_token');
+    
+    // Save JWT token and user ID for subsequent requests
+    bru.setEnvVar('JWT', body.session.access_token);
+    bru.setEnvVar('USER_ID', body.user.id);
+  });
+  
+  test("JWT token is valid format", function() {
+    const token = res.getBody().session.access_token;
+    const parts = token.split('.');
+    expect(parts).to.have.length(3); // JWT has 3 parts
+  });
+}

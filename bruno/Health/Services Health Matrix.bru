@@ -1,0 +1,64 @@
+meta {
+  name: Services Health Matrix
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{BASE_URL}}/_services/health
+  body: none
+  auth: none
+}
+
+tests {
+  test("Status is 200 when all services are healthy", function() {
+    // Accept both 200 (all healthy) and 503 (some unhealthy)
+    const status = res.getStatus();
+    expect([200, 503]).to.include(status);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response has services array", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('services');
+    expect(body.services).to.be.an('array');
+  });
+  
+  test("All required services are checked", function() {
+    const body = res.getBody();
+    const serviceNames = body.services.map(s => s.service);
+    
+    // Required services: boards, collab, sessions, notifications, redis
+    expect(serviceNames).to.include('boards');
+    expect(serviceNames).to.include('collab');
+    expect(serviceNames).to.include('sessions');
+    expect(serviceNames).to.include('notifications');
+    expect(serviceNames).to.include('redis');
+  });
+  
+  test("Each service has required fields", function() {
+    const body = res.getBody();
+    
+    body.services.forEach(service => {
+      expect(service).to.have.property('service');
+      expect(service).to.have.property('ok');
+      expect(service).to.have.property('latencyMs');
+      expect(service.latencyMs).to.be.a('number');
+    });
+  });
+  
+  test("Response has overall status", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('overall');
+    expect(body.overall).to.be.a('boolean');
+  });
+  
+  test("Response has timestamp", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('timestamp');
+    expect(new Date(body.timestamp)).to.be.a('date');
+  });
+}

@@ -1,0 +1,57 @@
+meta {
+  name: Create Workspace
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/workspaces
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Bruno Test Workspace",
+    "description": "Workspace created by Bruno API tests"
+  }
+}
+
+tests {
+  test("Status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response contains workspace data", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('id');
+    expect(body).to.have.property('name');
+    expect(body).to.have.property('description');
+    expect(body.name).to.equal('Bruno Test Workspace');
+  });
+  
+  test("Save workspace ID", function() {
+    const body = res.getBody();
+    bru.setEnvVar('WORKSPACE_ID', body.id);
+    console.log('Created and saved workspace ID:', body.id);
+  });
+  
+  test("Workspace has required fields", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('createdAt');
+    expect(body).to.have.property('updatedAt');
+    expect(body).to.have.property('ownerId');
+  });
+}

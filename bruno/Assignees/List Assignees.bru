@@ -1,0 +1,41 @@
+meta {
+  name: List Assignees
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards/{{CARD_ID}}/assignees
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response is an array", function() {
+    const body = res.getBody();
+    expect(body).to.be.an('array');
+  });
+  
+  test("Current user is assigned", function() {
+    const body = res.getBody();
+    const currentUserId = bru.getEnvVar('USER_ID');
+    
+    if (body.length > 0) {
+      const userAssignment = body.find(assignee => assignee.userId === currentUserId);
+      expect(userAssignment).to.not.be.undefined;
+      expect(userAssignment.cardId).to.equal(bru.getEnvVar('CARD_ID'));
+    }
+  });
+}

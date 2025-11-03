@@ -1,0 +1,59 @@
+meta {
+  name: Create Session
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/workspaces/{{WORKSPACE_ID}}/sessions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "Bruno Test Session",
+    "description": "Session created by Bruno API tests"
+  }
+}
+
+tests {
+  test("Status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response contains session data", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('id');
+    expect(body).to.have.property('title');
+    expect(body).to.have.property('description');
+    expect(body).to.have.property('workspaceId');
+    expect(body.title).to.equal('Bruno Test Session');
+    expect(body.workspaceId).to.equal(bru.getEnvVar('WORKSPACE_ID'));
+  });
+  
+  test("Save session ID", function() {
+    const body = res.getBody();
+    bru.setEnvVar('SESSION_ID', body.id);
+    console.log('Created and saved session ID:', body.id);
+  });
+  
+  test("Session has required fields", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('createdAt');
+    expect(body).to.have.property('status');
+    expect(body).to.have.property('createdBy');
+  });
+}

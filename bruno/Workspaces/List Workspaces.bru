@@ -1,0 +1,39 @@
+meta {
+  name: List Workspaces
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{BASE_URL}}/workspaces
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response is an array", function() {
+    const body = res.getBody();
+    expect(body).to.be.an('array');
+  });
+  
+  test("Save first workspace ID if available", function() {
+    const body = res.getBody();
+    if (body.length > 0) {
+      expect(body[0]).to.have.property('id');
+      bru.setEnvVar('WORKSPACE_ID', body[0].id);
+      console.log('Saved workspace ID:', body[0].id);
+    }
+  });
+}

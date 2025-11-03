@@ -1,0 +1,39 @@
+meta {
+  name: Archive Card
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards/{{CARD_ID}}/archive
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Card was archived", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('id');
+    expect(body).to.have.property('archived');
+    expect(body.archived).to.be.true;
+    expect(body.id).to.equal(bru.getEnvVar('CARD_ID'));
+  });
+  
+  test("Card has archived timestamp", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('archivedAt');
+    expect(new Date(body.archivedAt)).to.be.a('date');
+  });
+}

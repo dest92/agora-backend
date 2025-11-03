@@ -1,0 +1,60 @@
+meta {
+  name: Create Board
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/workspaces/{{WORKSPACE_ID}}/boards
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Bruno Test Board",
+    "description": "Board created by Bruno API tests",
+    "type": "kanban"
+  }
+}
+
+tests {
+  test("Status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response contains board data", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('id');
+    expect(body).to.have.property('name');
+    expect(body).to.have.property('description');
+    expect(body).to.have.property('workspaceId');
+    expect(body.name).to.equal('Bruno Test Board');
+    expect(body.workspaceId).to.equal(bru.getEnvVar('WORKSPACE_ID'));
+  });
+  
+  test("Save board ID", function() {
+    const body = res.getBody();
+    bru.setEnvVar('BOARD_ID', body.id);
+    console.log('Created and saved board ID:', body.id);
+  });
+  
+  test("Board has required fields", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('createdAt');
+    expect(body).to.have.property('updatedAt');
+    expect(body).to.have.property('type');
+  });
+}

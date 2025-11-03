@@ -1,0 +1,47 @@
+meta {
+  name: Join Session
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/sessions/{{SESSION_ID}}/join
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("User joined session successfully", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('sessionId');
+    expect(body).to.have.property('userId');
+    expect(body).to.have.property('joinedAt');
+    expect(body.sessionId).to.equal(bru.getEnvVar('SESSION_ID'));
+    expect(body.userId).to.equal(bru.getEnvVar('USER_ID'));
+  });
+  
+  test("Join timestamp is valid", function() {
+    const body = res.getBody();
+    expect(new Date(body.joinedAt)).to.be.a('date');
+  });
+}

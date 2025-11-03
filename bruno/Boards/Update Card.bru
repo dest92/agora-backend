@@ -1,0 +1,52 @@
+meta {
+  name: Update Card
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards/{{CARD_ID}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "content": "Bruno Test Card - UPDATED by API tests",
+    "priority": "high"
+  }
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Card was updated correctly", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('id');
+    expect(body).to.have.property('content');
+    expect(body).to.have.property('priority');
+    expect(body.content).to.equal('Bruno Test Card - UPDATED by API tests');
+    expect(body.priority).to.equal('high');
+    expect(body.id).to.equal(bru.getEnvVar('CARD_ID'));
+  });
+  
+  test("Card has updated timestamp", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('updatedAt');
+    expect(new Date(body.updatedAt)).to.be.a('date');
+  });
+}

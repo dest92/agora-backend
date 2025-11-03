@@ -1,0 +1,47 @@
+meta {
+  name: Leave Session
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{BASE_URL}}/sessions/{{SESSION_ID}}/leave
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("User left session successfully", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('sessionId');
+    expect(body).to.have.property('userId');
+    expect(body).to.have.property('leftAt');
+    expect(body.sessionId).to.equal(bru.getEnvVar('SESSION_ID'));
+    expect(body.userId).to.equal(bru.getEnvVar('USER_ID'));
+  });
+  
+  test("Leave timestamp is valid", function() {
+    const body = res.getBody();
+    expect(new Date(body.leftAt)).to.be.a('date');
+  });
+}

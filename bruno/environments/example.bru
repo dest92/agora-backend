@@ -1,0 +1,27 @@
+vars {
+  BASE_URL: http://localhost:3000
+  SUPABASE_URL: https://your-project.supabase.co
+  SUPABASE_ANON_KEY: your-supabase-anon-key
+  JWT: 
+  USER_ID: 
+  EMAIL: user@example.com
+  PASSWORD: YourPassword123!
+  WORKSPACE_ID: 
+  BOARD_ID: 
+  CARD_ID: 
+  SESSION_ID: 
+  LANE_ID: 
+}
+
+docs {
+  # Example Environment
+  
+  Template environment file. Copy values from your .env file:
+  
+  - BASE_URL: Your API Gateway URL (default: http://localhost:3000)
+  - SUPABASE_URL: From SUPABASE_URL in .env
+  - SUPABASE_ANON_KEY: From SUPABASE_ANON_KEY in .env
+  - EMAIL/PASSWORD: Test user credentials
+  
+  Other variables will be populated automatically during test execution.
+}

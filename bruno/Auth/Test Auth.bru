@@ -1,0 +1,40 @@
+meta {
+  name: Test Auth
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{BASE_URL}}/auth/test
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+tests {
+  test("Status is 200 with valid JWT", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response contains user info", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('userId');
+    expect(body).to.have.property('email');
+    expect(body.email).to.equal(bru.getEnvVar('EMAIL'));
+  });
+  
+  test("User ID matches saved value", function() {
+    const body = res.getBody();
+    const savedUserId = bru.getEnvVar('USER_ID');
+    if (savedUserId) {
+      expect(body.userId).to.equal(savedUserId);
+    }
+  });
+}

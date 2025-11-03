@@ -1,0 +1,31 @@
+meta {
+  name: Gateway Health
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{BASE_URL}}/health
+  body: none
+  auth: none
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response contains status ok", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('status');
+    expect(body.status).to.equal('ok');
+  });
+  
+  test("Response time is reasonable", function() {
+    expect(res.getResponseTime()).to.be.below(1000);
+  });
+}

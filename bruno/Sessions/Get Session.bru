@@ -1,0 +1,45 @@
+meta {
+  name: Get Session
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{BASE_URL}}/sessions/{{SESSION_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response contains session data", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('id');
+    expect(body).to.have.property('title');
+    expect(body).to.have.property('description');
+    expect(body).to.have.property('workspaceId');
+    expect(body.id).to.equal(bru.getEnvVar('SESSION_ID'));
+    expect(body.title).to.equal('Bruno Test Session');
+  });
+  
+  test("Session has participants", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('participants');
+    expect(body.participants).to.be.an('array');
+    
+    // Should include current user
+    const currentUser = body.participants.find(p => p.userId === bru.getEnvVar('USER_ID'));
+    expect(currentUser).to.not.be.undefined;
+  });
+}

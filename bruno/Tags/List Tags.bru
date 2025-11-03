@@ -1,0 +1,40 @@
+meta {
+  name: List Tags
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/tags
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response is an array", function() {
+    const body = res.getBody();
+    expect(body).to.be.an('array');
+  });
+  
+  test("Created tag is in the list", function() {
+    const body = res.getBody();
+    
+    if (body.length > 0) {
+      const brunoTag = body.find(tag => tag.name === 'bruno-test');
+      expect(brunoTag).to.not.be.undefined;
+      expect(brunoTag.color).to.equal('#FF5733');
+    }
+  });
+}

@@ -1,0 +1,40 @@
+meta {
+  name: Get Workspace
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{BASE_URL}}/workspaces/{{WORKSPACE_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response contains workspace data", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('id');
+    expect(body).to.have.property('name');
+    expect(body).to.have.property('description');
+    expect(body.id).to.equal(bru.getEnvVar('WORKSPACE_ID'));
+  });
+  
+  test("Workspace has all required fields", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('createdAt');
+    expect(body).to.have.property('updatedAt');
+    expect(body).to.have.property('ownerId');
+  });
+}

@@ -1,7 +1,7 @@
 import { Controller, Get, Inject, Logger, HttpStatus, Res } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom, timeout, catchError, of } from 'rxjs';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { Public } from '@app/lib-auth';
 import type { EventBus } from '@app/lib-events';
 

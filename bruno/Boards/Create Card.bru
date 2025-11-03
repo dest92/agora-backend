@@ -1,0 +1,59 @@
+meta {
+  name: Create Card
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "content": "Bruno Test Card - Created by API tests",
+    "priority": "normal"
+  }
+}
+
+tests {
+  test("Status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response has correct content-type", function() {
+    expect(res.getHeader('content-type')).to.contain('json');
+  });
+  
+  test("Response contains card data", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('id');
+    expect(body).to.have.property('content');
+    expect(body).to.have.property('priority');
+    expect(body).to.have.property('boardId');
+    expect(body.content).to.equal('Bruno Test Card - Created by API tests');
+    expect(body.boardId).to.equal(bru.getEnvVar('BOARD_ID'));
+  });
+  
+  test("Save card ID", function() {
+    const body = res.getBody();
+    bru.setEnvVar('CARD_ID', body.id);
+    console.log('Created and saved card ID:', body.id);
+  });
+  
+  test("Card has required fields", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('position');
+    expect(body).to.have.property('createdAt');
+    expect(body.position).to.be.a('number');
+  });
+}
