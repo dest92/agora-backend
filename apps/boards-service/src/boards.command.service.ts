@@ -15,6 +15,7 @@ export class BoardsCommandService {
     content: string;
     priority: string;
     position: number;
+    laneId?: string;
   }) {
     const card = await this.dao.createCard(input);
 

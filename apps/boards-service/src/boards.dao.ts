@@ -25,10 +25,11 @@ export class BoardsDao {
     content: string;
     priority: string;
     position: number;
+    laneId?: string;
   }): Promise<CardRow> {
     const query = sql`
-      INSERT INTO boards.cards (board_id, author_id, content, priority, position)
-      VALUES (${input.boardId}, ${input.authorId}, ${input.content}, ${input.priority}, ${input.position})
+      INSERT INTO boards.cards (board_id, author_id, content, priority, position, lane_id)
+      VALUES (${input.boardId}, ${input.authorId}, ${input.content}, ${input.priority}, ${input.position}, ${input.laneId || null})
       RETURNING id, board_id, author_id, content, lane_id, priority, position, created_at, updated_at, archived_at
     `;
     const result = await this.pg.query<CardRow>(query);

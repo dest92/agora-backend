@@ -10,6 +10,7 @@ import {
   Inject,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import {
@@ -36,9 +37,11 @@ export class BoardsController {
   async createCard(
     @Param('boardId', ParseUUIDPipe) boardId: string,
     @Body() dto: CreateCardDto,
+    @Req() request: any,
   ) {
     return this.boardsService.send('cards.create', {
       boardId,
+      authorId: request.user.id,
       ...dto,
     });
   }

@@ -19,6 +19,7 @@ export class BoardsController {
       content: string;
       priority: string;
       position: number;
+      laneId?: string;
     },
   ) {
     return this.commandService.createCard(data);
