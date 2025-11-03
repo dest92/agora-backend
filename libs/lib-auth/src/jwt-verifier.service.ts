@@ -36,6 +36,27 @@ export class JwtVerifierService {
 
   async verify(token: string): Promise<AuthUser> {
     try {
+      // Try direct verification with JWT secret first (for development)
+      const jwtSecret = this.configService.get<string>('JWT_SECRET');
+      
+      if (jwtSecret && jwtSecret !== 'your-jwt-secret-here') {
+        try {
+          const verified = jwt.verify(token, jwtSecret, {
+            algorithms: ['HS256'],
+            issuer: this.expectedIssuer,
+            audience: this.expectedAudience,
+          }) as JwtPayload;
+          
+          return {
+            userId: verified.sub,
+            email: verified.email || '',
+          };
+        } catch (secretError) {
+          this.logger.warn('JWT secret verification failed, trying JWKS...', secretError);
+        }
+      }
+
+      // Fallback to JWKS verification
       const decoded = jwt.decode(token, { complete: true });
       if (!decoded || typeof decoded === 'string') {
         throw new UnauthorizedException('Invalid token format');

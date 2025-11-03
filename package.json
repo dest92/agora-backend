@@ -40,7 +40,6 @@
     "@nestjs/microservices": "^11.1.8",
     "@nestjs/platform-express": "^11.1.8",
     "@nestjs/platform-socket.io": "^11.1.8",
-    "@socket.io/redis-adapter": "^8.3.0",
     "@supabase/supabase-js": "^2.39.3",
     "axios": "^1.13.1",
     "class-transformer": "^0.5.1",
