@@ -1,0 +1,36 @@
+meta {
+  name: Votes - Vote Up
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards/{{CARD_ID}}/votes/up
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+tests {
+  test("Status should be 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should contain vote data", function() {
+    const body = res.getBody();
+    expect(body.id).to.be.a("string");
+    expect(body.cardId).to.equal(bru.getVar("CARD_ID"));
+    expect(body.kind).to.equal("up");
+    expect(body.voterId).to.be.a("string");
+  });
+  
+  test("Should save vote ID for other requests", function() {
+    const body = res.getBody();
+    if (body.id) {
+      bru.setVar("VOTE_ID", body.id);
+    }
+  });
+}

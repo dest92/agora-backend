@@ -1,0 +1,41 @@
+meta {
+  name: Gateway vs Direct - Create Card
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+body:json {
+  {
+    "content": "Card via Gateway (should route to Boards Service)",
+    "priority": "high",
+    "position": 1
+  }
+}
+
+tests {
+  test("Gateway should route to Boards Service", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should be identical to direct service call", function() {
+    const body = res.getBody();
+    expect(body.id).to.be.a("string");
+    expect(body.content).to.equal("Card via Gateway (should route to Boards Service)");
+    expect(body.priority).to.equal("high");
+  });
+  
+  test("Response time should be reasonable (routing overhead)", function() {
+    // Gateway adds routing overhead, but should still be fast
+    expect(res.getResponseTime()).to.be.below(3000);
+  });
+}

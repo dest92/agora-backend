@@ -1,0 +1,22 @@
+meta {
+  name: Gateway Health
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{GATEWAY_URL}}/health
+  body: none
+  auth: none
+}
+
+tests {
+  test("Gateway should be running on port 3000", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should contain service name", function() {
+    const body = res.getBody();
+    expect(body.service).to.equal("api-gateway");
+  });
+}

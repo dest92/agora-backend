@@ -1,0 +1,42 @@
+meta {
+  name: Boards - Direct Create Card
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BOARDS_URL}}/boards/{{BOARD_ID}}/cards
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+body:json {
+  {
+    "content": "Direct card to Boards Service",
+    "priority": "normal",
+    "position": 1
+  }
+}
+
+tests {
+  test("Direct call to Boards Service should work", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should contain card data", function() {
+    const body = res.getBody();
+    expect(body.id).to.be.a("string");
+    expect(body.content).to.equal("Direct card to Boards Service");
+  });
+  
+  test("Should save direct card ID", function() {
+    const body = res.getBody();
+    if (body.id) {
+      bru.setVar("DIRECT_CARD_ID", body.id);
+    }
+  });
+}

@@ -1,0 +1,26 @@
+meta {
+  name: Votes - Remove Vote
+  type: http
+  seq: 12
+}
+
+delete {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards/{{CARD_ID}}/votes
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should confirm removal", function() {
+    const body = res.getBody();
+    expect(body.removed).to.equal(true);
+  });
+}

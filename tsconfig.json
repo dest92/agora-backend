@@ -16,6 +16,18 @@
     "baseUrl": "./",
     "incremental": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@app/lib-db": ["libs/lib-db/src"],
+      "@app/lib-db/*": ["libs/lib-db/src/*"],
+      "@app/lib-auth": ["libs/lib-auth/src"],
+      "@app/lib-auth/*": ["libs/lib-auth/src/*"],
+      "@app/lib-events": ["libs/lib-events/src"],
+      "@app/lib-events/*": ["libs/lib-events/src/*"],
+      "@app/lib-contracts": ["libs/lib-contracts/src"],
+      "@app/lib-contracts/*": ["libs/lib-contracts/src/*"],
+      "@app/lib-realtime": ["libs/lib-realtime/src"],
+      "@app/lib-realtime/*": ["libs/lib-realtime/src/*"]
+    }
   }
 }

@@ -1,0 +1,21 @@
+meta {
+  name: Notifications Service Health
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{NOTIFICATIONS_URL}}/health
+  body: none
+  auth: none
+}
+
+tests {
+  test("Notifications Service should be running on port 3014", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Should respond within 5 seconds", function() {
+    expect(res.getResponseTime()).to.be.below(5000);
+  });
+}

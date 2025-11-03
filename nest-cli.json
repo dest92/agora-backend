@@ -1,8 +1,104 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
+  "sourceRoot": "apps/api-gateway/src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "tsconfig.json"
+  },
+  "monorepo": true,
+  "root": "apps/api-gateway",
+  "projects": {
+    "api-gateway": {
+      "type": "application",
+      "root": "apps/api-gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/api-gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
+      }
+    },
+    "boards-service": {
+      "type": "application",
+      "root": "apps/boards-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/boards-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/boards-service/tsconfig.app.json"
+      }
+    },
+    "collab-service": {
+      "type": "application",
+      "root": "apps/collab-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/collab-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/collab-service/tsconfig.app.json"
+      }
+    },
+    "sessions-service": {
+      "type": "application",
+      "root": "apps/sessions-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/sessions-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/sessions-service/tsconfig.app.json"
+      }
+    },
+    "notifications-service": {
+      "type": "application",
+      "root": "apps/notifications-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/notifications-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/notifications-service/tsconfig.app.json"
+      }
+    },
+    "lib-db": {
+      "type": "library",
+      "root": "libs/lib-db",
+      "entryFile": "index",
+      "sourceRoot": "libs/lib-db/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/lib-db/tsconfig.lib.json"
+      }
+    },
+    "lib-auth": {
+      "type": "library",
+      "root": "libs/lib-auth",
+      "entryFile": "index",
+      "sourceRoot": "libs/lib-auth/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/lib-auth/tsconfig.lib.json"
+      }
+    },
+    "lib-events": {
+      "type": "library",
+      "root": "libs/lib-events",
+      "entryFile": "index",
+      "sourceRoot": "libs/lib-events/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/lib-events/tsconfig.lib.json"
+      }
+    },
+    "lib-contracts": {
+      "type": "library",
+      "root": "libs/lib-contracts",
+      "entryFile": "index",
+      "sourceRoot": "libs/lib-contracts/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/lib-contracts/tsconfig.lib.json"
+      }
+    },
+    "lib-realtime": {
+      "type": "library",
+      "root": "libs/lib-realtime",
+      "entryFile": "index",
+      "sourceRoot": "libs/lib-realtime/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/lib-realtime/tsconfig.lib.json"
+      }
+    }
   }
 }

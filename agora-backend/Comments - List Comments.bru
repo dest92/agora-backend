@@ -1,0 +1,37 @@
+meta {
+  name: Comments - List Comments
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards/{{CARD_ID}}/comments
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should be an array", function() {
+    const body = res.getBody();
+    expect(body).to.be.an("array");
+  });
+  
+  test("Should contain created comment if COMMENT_ID exists", function() {
+    const body = res.getBody();
+    const commentId = bru.getVar("COMMENT_ID");
+    
+    if (commentId && body.length > 0) {
+      const foundComment = body.find(comment => comment.id === commentId);
+      expect(foundComment).to.not.be.undefined;
+      expect(foundComment.cardId).to.equal(bru.getVar("CARD_ID"));
+    }
+  });
+}

@@ -1,0 +1,26 @@
+meta {
+  name: Projections - Refresh
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/projections/refresh
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should confirm refresh", function() {
+    const body = res.getBody();
+    expect(body.refreshed).to.equal(true);
+  });
+}

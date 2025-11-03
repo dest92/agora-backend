@@ -1,0 +1,27 @@
+meta {
+  name: Cards - Unarchive Card
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards/{{CARD_ID}}/unarchive
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should show card as unarchived", function() {
+    const body = res.getBody();
+    expect(body.id).to.equal(bru.getVar("CARD_ID"));
+    expect(body.archivedAt).to.be.null;
+  });
+}

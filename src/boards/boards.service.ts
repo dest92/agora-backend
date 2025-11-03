@@ -160,9 +160,7 @@ export class BoardsService {
       // Ignore if view doesn't exist
     }
     try {
-      await this.pg.query(
-        sql`SELECT projections.refresh_mv_card_counters()`,
-      );
+      await this.pg.query(sql`SELECT projections.refresh_mv_card_counters()`);
     } catch {
       // Ignore if view doesn't exist
     }

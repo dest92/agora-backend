@@ -1,0 +1,21 @@
+meta {
+  name: Collab Service Health
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{COLLAB_URL}}/health
+  body: none
+  auth: none
+}
+
+tests {
+  test("Collab Service should be running on port 3012", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Should respond within 5 seconds", function() {
+    expect(res.getResponseTime()).to.be.below(5000);
+  });
+}

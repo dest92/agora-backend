@@ -1,0 +1,44 @@
+meta {
+  name: Cards - Create Card
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+body:json {
+  {
+    "content": "New card created from Bruno",
+    "priority": "normal",
+    "position": 1
+  }
+}
+
+tests {
+  test("Status should be 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should contain card data", function() {
+    const body = res.getBody();
+    expect(body.id).to.be.a("string");
+    expect(body.content).to.equal("New card created from Bruno");
+    expect(body.priority).to.equal("normal");
+    expect(body.position).to.equal(1);
+  });
+  
+  test("Should save card ID for other requests", function() {
+    const body = res.getBody();
+    if (body.id) {
+      bru.setVar("CARD_ID", body.id);
+    }
+  });
+}

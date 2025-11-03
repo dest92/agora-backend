@@ -1,0 +1,37 @@
+meta {
+  name: Cards - Update Card
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards/{{CARD_ID}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+body:json {
+  {
+    "content": "Updated card content from Bruno",
+    "priority": "high",
+    "position": 2
+  }
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should contain updated data", function() {
+    const body = res.getBody();
+    expect(body.id).to.equal(bru.getVar("CARD_ID"));
+    expect(body.content).to.equal("Updated card content from Bruno");
+    expect(body.priority).to.equal("high");
+    expect(body.position).to.equal(2);
+  });
+}

@@ -1,5 +1,5 @@
 ---
-trigger: always_on
+trigger: manual
 ---
 
 name: Agora Backend – Clean TS/Nest, Microservices & EDA (Nest-only)
@@ -103,4 +103,3 @@ rules:
       - Unit/Integration/E2E en verde.
       - Tracing en paths críticos (emit WS, publish Redis, write DB).
       - Sin lógica de negocio en controladores; sin fugas cross-sesión; eventos documentados.
-

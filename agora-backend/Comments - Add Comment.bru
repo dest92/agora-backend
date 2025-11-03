@@ -1,0 +1,42 @@
+meta {
+  name: Comments - Add Comment
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards/{{CARD_ID}}/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+body:json {
+  {
+    "content": "This is a comment added from Bruno API testing tool"
+  }
+}
+
+tests {
+  test("Status should be 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should contain comment data", function() {
+    const body = res.getBody();
+    expect(body.id).to.be.a("string");
+    expect(body.cardId).to.equal(bru.getVar("CARD_ID"));
+    expect(body.content).to.equal("This is a comment added from Bruno API testing tool");
+    expect(body.authorId).to.be.a("string");
+  });
+  
+  test("Should save comment ID for other requests", function() {
+    const body = res.getBody();
+    if (body.id) {
+      bru.setVar("COMMENT_ID", body.id);
+    }
+  });
+}

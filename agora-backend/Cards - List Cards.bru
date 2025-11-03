@@ -1,0 +1,40 @@
+meta {
+  name: Cards - List Cards
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{BASE_URL}}/boards/{{BOARD_ID}}/cards
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+params:query {
+  laneId: {{LANE_ID}}
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should be an array", function() {
+    const body = res.getBody();
+    expect(body).to.be.an("array");
+  });
+  
+  test("Should contain created card if CARD_ID exists", function() {
+    const body = res.getBody();
+    const cardId = bru.getVar("CARD_ID");
+    
+    if (cardId && body.length > 0) {
+      const foundCard = body.find(card => card.id === cardId);
+      expect(foundCard).to.not.be.undefined;
+    }
+  });
+}

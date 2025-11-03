@@ -1,0 +1,40 @@
+meta {
+  name: Collab - Direct Add Comment
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{COLLAB_URL}}/boards/{{BOARD_ID}}/cards/{{CARD_ID}}/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{JWT_TOKEN}}
+}
+
+body:json {
+  {
+    "content": "Direct comment to Collab Service"
+  }
+}
+
+tests {
+  test("Direct call to Collab Service should work", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should contain comment data", function() {
+    const body = res.getBody();
+    expect(body.id).to.be.a("string");
+    expect(body.content).to.equal("Direct comment to Collab Service");
+  });
+  
+  test("Should save direct comment ID", function() {
+    const body = res.getBody();
+    if (body.id) {
+      bru.setVar("DIRECT_COMMENT_ID", body.id);
+    }
+  });
+}
