@@ -39,8 +39,17 @@ export class JwksService {
     const jwksUrl = this.configService.get('SUPABASE_JWKS_URL', {
       infer: true,
     });
+    const anonKey = this.configService.get('SUPABASE_ANON_KEY', {
+      infer: true,
+    });
+
     try {
-      const response = await fetch(jwksUrl);
+      const response = await fetch(jwksUrl, {
+        headers: {
+          Authorization: `Bearer ${anonKey}`,
+          apikey: anonKey,
+        },
+      });
       if (!response.ok) {
         throw new Error(`JWKS fetch failed: ${response.status}`);
       }
