@@ -28,7 +28,7 @@ export class BoardsCommandService {
         authorId: card.author_id,
         priority: card.priority,
         position: card.position,
-        createdAt: card.created_at.toISOString(),
+        createdAt: card.created_at,
       },
       meta: {
         boardId: card.board_id,
@@ -49,6 +49,7 @@ export class BoardsCommandService {
       priority?: string;
       position?: number;
     },
+    userId?: string,
   ) {
     const { previousLaneId, card } = await this.dao.updateCard(
       cardId,
@@ -66,12 +67,13 @@ export class BoardsCommandService {
       payload: {
         cardId: card.id,
         boardId: card.board_id,
-        laneId: card.lane_id,
+        targetLaneId: card.lane_id,
         priority: card.priority,
         position: card.position,
         content: card.content,
         archived: false,
-        updatedAt: card.updated_at.toISOString(),
+        updatedAt: card.updated_at,
+        userId: userId || card.author_id,
       },
       meta: {
         boardId: card.board_id,
@@ -95,7 +97,7 @@ export class BoardsCommandService {
         priority: card.priority,
         position: card.position,
         archived: true,
-        updatedAt: card.archived_at?.toISOString(),
+        updatedAt: card.archived_at,
       },
       meta: {
         boardId: card.board_id,
@@ -119,7 +121,7 @@ export class BoardsCommandService {
         priority: card.priority,
         position: card.position,
         archived: false,
-        updatedAt: card.updated_at.toISOString(),
+        updatedAt: card.updated_at,
       },
       meta: {
         boardId: card.board_id,
@@ -136,6 +138,33 @@ export class BoardsCommandService {
     return { refreshed: true };
   }
 
+  async createComment(input: {
+    cardId: string;
+    authorId: string;
+    content: string;
+    boardId: string;
+  }) {
+    const comment = await this.dao.createComment(input);
+
+    const event: DomainEvent = {
+      name: 'comment:created',
+      payload: {
+        commentId: comment.id,
+        cardId: comment.card_id,
+        authorId: comment.author_id,
+        content: comment.content,
+        createdAt: comment.created_at,
+      },
+      meta: {
+        boardId: input.boardId,
+        occurredAt: new Date().toISOString(),
+      },
+    };
+
+    await this.eventBus.publish(event);
+    return this.mapToComment(comment);
+  }
+
   private mapToCard(row: any) {
     return {
       id: row.id,
@@ -148,6 +177,16 @@ export class BoardsCommandService {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       archivedAt: row.archived_at,
+    };
+  }
+
+  private mapToComment(row: any) {
+    return {
+      id: row.id,
+      cardId: row.card_id,
+      authorId: row.author_id,
+      content: row.content,
+      createdAt: row.created_at,
     };
   }
 }

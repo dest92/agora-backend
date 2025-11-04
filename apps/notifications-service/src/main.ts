@@ -10,7 +10,7 @@ import { NotificationsModule } from './notifications.module';
 
 async function bootstrap(): Promise<void> {
   const port = parseInt(process.env.NOTIFICATIONS_PORT || '3014', 10);
-  
+
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     NotificationsModule,
     {

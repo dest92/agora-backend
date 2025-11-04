@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PgService, sql } from '@app/lib-db';
+import { createClient } from '@supabase/supabase-js';
 
 /**
- * DAO Pattern: SQL parametrizado sin ORM
- * Singleton: PgService inyectado como @Global
+ * DAO Pattern: Usando Supabase REST API
+ * Evita problemas de conexión directa a PostgreSQL
  */
 
 interface CardAssigneeRow {
@@ -14,34 +14,74 @@ interface CardAssigneeRow {
 
 @Injectable()
 export class AssigneesDao {
-  constructor(private readonly pg: PgService) {}
+  private supabase;
+
+  constructor() {
+    this.supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        db: {
+          schema: 'boards',
+        },
+      },
+    );
+  }
 
   /**
-   * Asignar usuario a card con ON CONFLICT DO NOTHING para idempotencia
-   * Patrón: PK compuesta (card_id, user_id) con constraint
+   * Asignar usuario a card con upsert para idempotencia
    */
-  async assign(cardId: string, userId: string): Promise<CardAssigneeRow | null> {
-    const query = sql`
-      INSERT INTO boards.card_assignees (card_id, user_id, assigned_at)
-      VALUES (${cardId}, ${userId}, NOW())
-      ON CONFLICT (card_id, user_id) DO NOTHING
-      RETURNING card_id, user_id, assigned_at
-    `;
-    const result = await this.pg.query<CardAssigneeRow>(query);
-    return result.rows[0] || null;
+  async assign(
+    cardId: string,
+    userId: string,
+  ): Promise<CardAssigneeRow | null> {
+    const { data, error } = await this.supabase
+      .from('card_assignees')
+      .upsert(
+        {
+          card_id: cardId,
+          user_id: userId,
+          assigned_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'card_id,user_id',
+          ignoreDuplicates: true,
+        },
+      )
+      .select('card_id, user_id, assigned_at')
+      .single();
+
+    if (error && error.code !== '23505') {
+      // Ignore unique constraint violations
+      throw new Error(`Failed to assign user: ${error.message}`);
+    }
+
+    return data || null;
   }
 
   /**
    * Desasignar usuario de card
-   * Retorna la fila eliminada para confirmar la operación
    */
-  async unassign(cardId: string, userId: string): Promise<CardAssigneeRow | null> {
-    const query = sql`
-      DELETE FROM boards.card_assignees 
-      WHERE card_id = ${cardId} AND user_id = ${userId}
-      RETURNING card_id, user_id, assigned_at
-    `;
-    const result = await this.pg.query<CardAssigneeRow>(query);
-    return result.rows[0] || null;
+  async unassign(
+    cardId: string,
+    userId: string,
+  ): Promise<CardAssigneeRow | null> {
+    const { data, error } = await this.supabase
+      .from('card_assignees')
+      .delete()
+      .eq('card_id', cardId)
+      .eq('user_id', userId)
+      .select('card_id, user_id, assigned_at')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to unassign user: ${error.message}`);
+    }
+
+    return data || null;
   }
 }

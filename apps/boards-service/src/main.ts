@@ -9,7 +9,7 @@ import { BoardsModule } from './boards.module';
 
 async function bootstrap() {
   const port = parseInt(process.env.BOARDS_PORT || '3011');
-  
+
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     BoardsModule,
     {

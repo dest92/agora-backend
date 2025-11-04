@@ -60,7 +60,7 @@ export class SessionsController {
       { cmd: 'sessions.join' },
       {
         sessionId,
-        userId: req.user.id,
+        userId: req.user.userId,
       },
     );
   }
@@ -78,7 +78,7 @@ export class SessionsController {
       { cmd: 'sessions.leave' },
       {
         sessionId,
-        userId: req.user.id,
+        userId: req.user.userId,
       },
     );
   }

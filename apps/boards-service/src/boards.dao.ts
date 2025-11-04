@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PgService } from '@app/lib-db/pg.service';
-import { sql } from '@app/lib-db/sql';
+import { createClient } from '@supabase/supabase-js';
 
 interface CardRow {
   id: string;
@@ -15,9 +14,33 @@ interface CardRow {
   archived_at: Date | null;
 }
 
+interface CommentRow {
+  id: string;
+  card_id: string;
+  author_id: string;
+  content: string;
+  created_at: Date;
+}
+
 @Injectable()
 export class BoardsDao {
-  constructor(private readonly pg: PgService) {}
+  private supabase;
+
+  constructor() {
+    this.supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        db: {
+          schema: 'boards',
+        },
+      },
+    );
+  }
 
   async createCard(input: {
     boardId: string;
@@ -27,26 +50,49 @@ export class BoardsDao {
     position: number;
     laneId?: string;
   }): Promise<CardRow> {
-    const query = sql`
-      INSERT INTO boards.cards (board_id, author_id, content, priority, position, lane_id)
-      VALUES (${input.boardId}, ${input.authorId}, ${input.content}, ${input.priority}, ${input.position}, ${input.laneId || null})
-      RETURNING id, board_id, author_id, content, lane_id, priority, position, created_at, updated_at, archived_at
-    `;
-    const result = await this.pg.query<CardRow>(query);
-    return result.rows[0];
+    const { data, error } = await this.supabase
+      .from('cards')
+      .insert({
+        board_id: input.boardId,
+        author_id: input.authorId,
+        content: input.content,
+        priority: input.priority,
+        position: input.position,
+        lane_id: input.laneId || null,
+      })
+      .select(
+        'id, board_id, author_id, content, lane_id, priority, position, created_at, updated_at, archived_at',
+      )
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create card: ${error.message}`);
+    }
+
+    return data;
   }
 
   async listCards(boardId: string, laneId?: string): Promise<CardRow[]> {
-    const query = sql`
-      SELECT id, board_id, author_id, content, lane_id, priority, position, created_at, updated_at, archived_at
-      FROM boards.cards
-      WHERE board_id = ${boardId}
-        AND (${laneId || null}::uuid IS NULL OR lane_id = ${laneId || null}::uuid)
-        AND archived_at IS NULL
-      ORDER BY position ASC, created_at ASC
-    `;
-    const result = await this.pg.query<CardRow>(query);
-    return result.rows;
+    let query = this.supabase
+      .from('cards')
+      .select(
+        'id, board_id, author_id, content, lane_id, priority, position, created_at, updated_at, archived_at',
+      )
+      .eq('board_id', boardId)
+      .is('archived_at', null)
+      .order('position', { ascending: true });
+
+    if (laneId) {
+      query = query.eq('lane_id', laneId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to list cards: ${error.message}`);
+    }
+
+    return data || [];
   }
 
   async updateCard(
@@ -59,63 +105,135 @@ export class BoardsDao {
       position?: number;
     },
   ): Promise<{ previousLaneId: string | null; card: CardRow }> {
-    const previousQuery = sql`
-      SELECT lane_id FROM boards.cards WHERE id = ${cardId} AND board_id = ${boardId}
-    `;
-    const previousResult = await this.pg.query<{ lane_id: string | null }>(
-      previousQuery,
-    );
-    const previousLaneId = previousResult.rows[0]?.lane_id || null;
+    // Get previous lane_id
+    const { data: previousData } = await this.supabase
+      .from('cards')
+      .select('lane_id')
+      .eq('id', cardId)
+      .eq('board_id', boardId)
+      .single();
 
-    const updateQuery = sql`
-      UPDATE boards.cards
-      SET
-        content = COALESCE(${updates.content || null}, content),
-        lane_id = COALESCE(${updates.laneId || null}::uuid, lane_id),
-        priority = COALESCE(${updates.priority || null}, priority),
-        position = COALESCE(${updates.position ?? null}, position),
-        updated_at = now()
-      WHERE id = ${cardId} AND board_id = ${boardId}
-      RETURNING id, board_id, author_id, content, lane_id, priority, position, created_at, updated_at, archived_at
-    `;
-    const result = await this.pg.query<CardRow>(updateQuery);
-    return { previousLaneId, card: result.rows[0] };
+    const previousLaneId = previousData?.lane_id || null;
+
+    // Build update object
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+    };
+    if (updates.content !== undefined) updateData.content = updates.content;
+    if (updates.laneId !== undefined) updateData.lane_id = updates.laneId;
+    if (updates.priority !== undefined) updateData.priority = updates.priority;
+    if (updates.position !== undefined) updateData.position = updates.position;
+
+    const { data, error } = await this.supabase
+      .from('cards')
+      .update(updateData)
+      .eq('id', cardId)
+      .eq('board_id', boardId)
+      .select(
+        'id, board_id, author_id, content, lane_id, priority, position, created_at, updated_at, archived_at',
+      )
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update card: ${error.message}`);
+    }
+
+    return { previousLaneId, card: data };
   }
 
   async archiveCard(cardId: string, boardId: string): Promise<CardRow> {
-    const query = sql`
-      UPDATE boards.cards
-      SET archived_at = now()
-      WHERE id = ${cardId} AND board_id = ${boardId} AND archived_at IS NULL
-      RETURNING id, board_id, author_id, content, lane_id, priority, position, created_at, updated_at, archived_at
-    `;
-    const result = await this.pg.query<CardRow>(query);
-    return result.rows[0];
+    const { data, error } = await this.supabase
+      .from('cards')
+      .update({
+        archived_at: new Date().toISOString(),
+      })
+      .eq('id', cardId)
+      .eq('board_id', boardId)
+      .is('archived_at', null)
+      .select(
+        'id, board_id, author_id, content, lane_id, priority, position, created_at, updated_at, archived_at',
+      )
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to archive card: ${error.message}`);
+    }
+
+    return data;
   }
 
   async unarchiveCard(cardId: string, boardId: string): Promise<CardRow> {
-    const query = sql`
-      UPDATE boards.cards
-      SET archived_at = NULL, updated_at = now()
-      WHERE id = ${cardId} AND board_id = ${boardId} AND archived_at IS NOT NULL
-      RETURNING id, board_id, author_id, content, lane_id, priority, position, created_at, updated_at, archived_at
-    `;
-    const result = await this.pg.query<CardRow>(query);
-    return result.rows[0];
+    const { data, error } = await this.supabase
+      .from('cards')
+      .update({
+        archived_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', cardId)
+      .eq('board_id', boardId)
+      .not('archived_at', 'is', null)
+      .select(
+        'id, board_id, author_id, content, lane_id, priority, position, created_at, updated_at, archived_at',
+      )
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to unarchive card: ${error.message}`);
+    }
+
+    return data;
   }
 
   async refreshProjections(): Promise<void> {
+    // Supabase doesn't support stored procedures via REST API easily
+    // This would need to be called via RPC
     try {
-      await this.pg.query(
-        sql`SELECT projections.refresh_mv_board_lane_counts()`,
-      );
+      await this.supabase.rpc('refresh_mv_board_lane_counts');
     } catch {
-      // Ignore if view doesn't exist
+      // Ignore if function doesn't exist
     }
     try {
-      await this.pg.query(sql`SELECT projections.refresh_mv_card_counters()`);
+      await this.supabase.rpc('refresh_mv_card_counters');
     } catch {
-      // Ignore if view doesn't exist
+      // Ignore if function doesn't exist
     }
+  }
+
+  // ===== Comments =====
+
+  async createComment(input: {
+    cardId: string;
+    authorId: string;
+    content: string;
+  }): Promise<CommentRow> {
+    const { data, error } = await this.supabase
+      .from('comments')
+      .insert({
+        card_id: input.cardId,
+        author_id: input.authorId,
+        content: input.content,
+      })
+      .select('id, card_id, author_id, content, created_at')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create comment: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async listComments(cardId: string): Promise<CommentRow[]> {
+    const { data, error } = await this.supabase
+      .from('comments')
+      .select('id, card_id, author_id, content, created_at')
+      .eq('card_id', cardId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to list comments: ${error.message}`);
+    }
+
+    return data || [];
   }
 }

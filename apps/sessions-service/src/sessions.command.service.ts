@@ -50,12 +50,15 @@ export class SessionsCommandService {
     name: string;
   }): Promise<Workspace> {
     // Write to DB
-    const row = await this.workspacesDao.createWorkspace(params.ownerId, params.name);
+    const row = await this.workspacesDao.createWorkspace(
+      params.ownerId,
+      params.name,
+    );
 
     // Map DB row to domain object
     const workspace: Workspace = {
       id: row.id,
-      ownerId: row.owner_id,
+      ownerId: row.created_by,
       name: row.name,
       createdAt: row.created_at,
     };
@@ -80,6 +83,61 @@ export class SessionsCommandService {
   }
 
   /**
+   * Agregar miembro a workspace
+   * TCP Contract: { cmd: 'workspaces.addMember' } → { added: boolean }
+   * Domain Event: workspace:memberAdded
+   * Acepta userId (UUID) o email
+   */
+  async addWorkspaceMember(params: {
+    workspaceId: string;
+    userId: string;
+    addedBy: string;
+  }): Promise<{ added: boolean }> {
+    let targetUserId = params.userId;
+
+    // Check if userId is actually an email
+    const isEmail = params.userId.includes('@');
+
+    if (isEmail) {
+      // Look up user by email
+      const foundUserId = await this.workspacesDao.findUserByEmail(
+        params.userId,
+      );
+
+      if (!foundUserId) {
+        throw new Error(`User with email ${params.userId} not found`);
+      }
+
+      targetUserId = foundUserId;
+    }
+
+    // Write to DB
+    await this.workspacesDao.addMember(
+      params.workspaceId,
+      targetUserId,
+      params.addedBy,
+    );
+
+    // Publish domain event
+    const event: DomainEvent = {
+      name: 'workspace:memberAdded',
+      payload: {
+        workspaceId: params.workspaceId,
+        userId: targetUserId,
+        addedBy: params.addedBy,
+      },
+      meta: {
+        workspaceId: params.workspaceId,
+        occurredAt: new Date().toISOString(),
+      } as any,
+    };
+
+    await this.eventBus.publish(event);
+
+    return { added: true };
+  }
+
+  /**
    * Crear sesión con evento de dominio
    * TCP Contract: { cmd: 'sessions.create' } → Session
    * Domain Event: session:created
@@ -89,7 +147,10 @@ export class SessionsCommandService {
     title: string;
   }): Promise<Session> {
     // Write to DB
-    const row = await this.sessionsDao.createSession(params.workspaceId, params.title);
+    const row = await this.sessionsDao.createSession(
+      params.workspaceId,
+      params.title,
+    );
 
     // Map DB row to domain object
     const session: Session = {
@@ -129,7 +190,10 @@ export class SessionsCommandService {
     workspaceId?: string;
   }): Promise<JoinResult> {
     // Write to DB (idempotent with ON CONFLICT DO NOTHING)
-    const dbResult = await this.sessionsDao.joinSession(params.sessionId, params.userId);
+    const dbResult = await this.sessionsDao.joinSession(
+      params.sessionId,
+      params.userId,
+    );
 
     // Solo publicar evento si realmente se unió (no era duplicado)
     if (dbResult) {
@@ -163,7 +227,10 @@ export class SessionsCommandService {
     workspaceId?: string;
   }): Promise<LeaveResult> {
     // Write to DB
-    const dbResult = await this.sessionsDao.leaveSession(params.sessionId, params.userId);
+    const dbResult = await this.sessionsDao.leaveSession(
+      params.sessionId,
+      params.userId,
+    );
 
     // Solo publicar evento si realmente se removió algo
     if (dbResult) {
@@ -184,5 +251,53 @@ export class SessionsCommandService {
     }
 
     return { left: true };
+  }
+
+  /**
+   * Actualizar rol de miembro del workspace
+   * CQRS Command: updateMemberRole
+   * Solo owners pueden cambiar roles
+   */
+  async updateMemberRole(params: {
+    workspaceId: string;
+    userId: string;
+    role: 'owner' | 'admin' | 'member';
+    requestedBy: string;
+  }): Promise<{ updated: boolean }> {
+    // Verificar que el usuario solicitante sea owner
+    const isOwner = await this.workspacesDao.isWorkspaceOwner(
+      params.workspaceId,
+      params.requestedBy,
+    );
+
+    if (!isOwner) {
+      throw new Error('Only workspace owners can change member roles');
+    }
+
+    // Actualizar el rol
+    await this.workspacesDao.updateMemberRole(
+      params.workspaceId,
+      params.userId,
+      params.role,
+    );
+
+    // Publicar evento de dominio
+    const event: DomainEvent = {
+      name: 'workspace:member_role_changed',
+      payload: {
+        workspaceId: params.workspaceId,
+        userId: params.userId,
+        newRole: params.role,
+        changedBy: params.requestedBy,
+      },
+      meta: {
+        workspaceId: params.workspaceId,
+        occurredAt: new Date().toISOString(),
+      } as any,
+    };
+
+    await this.eventBus.publish(event);
+
+    return { updated: true };
   }
 }

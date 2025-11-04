@@ -10,10 +10,13 @@ import { BoardsController } from './http/boards.controller';
 import { HealthController } from './http/health.controller';
 import { TagsController } from './http/tags.controller';
 import { AssigneesController } from './http/assignees.controller';
+import { CommentsController } from './http/comments.controller';
 import { WorkspacesController } from './http/workspaces.controller';
 import { SessionsController } from './http/sessions.controller';
 import { AuthController } from './http/auth.controller';
 import { ServicesHealthController } from './http/services-health.controller';
+import { UsersController } from './http/users.controller';
+import { NotificationsController } from './http/notifications.controller';
 import { SocketGateway } from './socket/socket.gateway';
 
 @Module({
@@ -63,10 +66,13 @@ import { SocketGateway } from './socket/socket.gateway';
     HealthController,
     TagsController,
     AssigneesController,
+    CommentsController,
     WorkspacesController,
     SessionsController,
     AuthController,
     ServicesHealthController,
+    UsersController,
+    NotificationsController,
   ],
   providers: [
     SocketGateway,

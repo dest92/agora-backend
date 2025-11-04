@@ -39,7 +39,8 @@ export class ServicesHealthController {
     @Inject('BOARDS_SERVICE') private readonly boardsService: ClientProxy,
     @Inject('COLLAB_SERVICE') private readonly collabService: ClientProxy,
     @Inject('SESSIONS_SERVICE') private readonly sessionsService: ClientProxy,
-    @Inject('NOTIFICATIONS_SERVICE') private readonly notificationsService: ClientProxy,
+    @Inject('NOTIFICATIONS_SERVICE')
+    private readonly notificationsService: ClientProxy,
     @Inject('EventBus') private readonly eventBus: EventBus,
   ) {}
 
@@ -65,7 +66,7 @@ export class ServicesHealthController {
       ),
       this.checkRedisHealth(),
     ];
-    
+
     const results = await Promise.all(healthChecks);
     const overall = results.every((result) => result.ok);
 

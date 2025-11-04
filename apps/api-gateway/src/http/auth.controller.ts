@@ -61,6 +61,7 @@ export class AuthController {
           {
             email: registerDto.email,
             password: registerDto.password,
+            data: registerDto.metadata || {}, // user_metadata
           },
           {
             headers: {
@@ -200,9 +201,10 @@ export class AuthController {
    */
   private handleSupabaseError(error: any): HttpException {
     const status = error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
-    const message = error.response?.data?.error_description || 
-                   error.response?.data?.msg || 
-                   'Authentication failed';
+    const message =
+      error.response?.data?.error_description ||
+      error.response?.data?.msg ||
+      'Authentication failed';
 
     return new HttpException(message, status);
   }
