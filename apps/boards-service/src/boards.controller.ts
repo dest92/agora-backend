@@ -90,8 +90,11 @@ export class BoardsController {
   }
 
   @MessagePattern('boards.list')
-  async listBoards(@Payload() data: { workspaceId: string }) {
-    return this.boardsManagementQueryService.listBoards(data.workspaceId);
+  async listBoards(@Payload() data: { workspaceId: string; userId?: string }) {
+    return this.boardsManagementQueryService.listBoards(
+      data.workspaceId,
+      data.userId,
+    );
   }
 
   @MessagePattern('boards.get')

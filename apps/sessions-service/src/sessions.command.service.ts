@@ -83,6 +83,42 @@ export class SessionsCommandService {
   }
 
   /**
+   * Agregar miembro a workspace
+   * TCP Contract: { cmd: 'workspaces.addMember' } → { added: boolean }
+   * Domain Event: workspace:memberAdded
+   */
+  async addWorkspaceMember(params: {
+    workspaceId: string;
+    userId: string;
+    addedBy: string;
+  }): Promise<{ added: boolean }> {
+    // Write to DB
+    await this.workspacesDao.addMember(
+      params.workspaceId,
+      params.userId,
+      params.addedBy,
+    );
+
+    // Publish domain event
+    const event: DomainEvent = {
+      name: 'workspace:memberAdded',
+      payload: {
+        workspaceId: params.workspaceId,
+        userId: params.userId,
+        addedBy: params.addedBy,
+      },
+      meta: {
+        workspaceId: params.workspaceId,
+        occurredAt: new Date().toISOString(),
+      } as any,
+    };
+
+    await this.eventBus.publish(event);
+
+    return { added: true };
+  }
+
+  /**
    * Crear sesión con evento de dominio
    * TCP Contract: { cmd: 'sessions.create' } → Session
    * Domain Event: session:created

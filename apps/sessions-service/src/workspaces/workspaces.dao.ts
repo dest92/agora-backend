@@ -73,4 +73,62 @@ export class WorkspacesDao {
 
     return data || [];
   }
+
+  /**
+   * Agregar miembro a workspace
+   * Inserta en boards.workspace_memberships si no existe
+   */
+  async addMember(
+    workspaceId: string,
+    userId: string,
+    addedBy: string,
+  ): Promise<void> {
+    const { error } = await this.supabase.from('workspace_memberships').insert({
+      workspace_id: workspaceId,
+      user_id: userId,
+      role: 'member',
+    });
+
+    if (error) {
+      // Ignore duplicate key errors (user already member)
+      if (error.code !== '23505') {
+        throw new Error(`Failed to add workspace member: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Listar miembros de un workspace
+   */
+  async listMembers(workspaceId: string): Promise<any[]> {
+    const { data, error } = await this.supabase
+      .from('workspace_memberships')
+      .select('user_id, role, joined_at')
+      .eq('workspace_id', workspaceId)
+      .order('joined_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to list workspace members: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Listar workspaces donde el usuario es miembro (invitaciones recibidas)
+   * Obtiene workspaces de workspace_memberships con JOIN a workspaces
+   */
+  async listMembershipWorkspaces(userId: string): Promise<any[]> {
+    const { data, error } = await this.supabase
+      .from('workspace_memberships')
+      .select('workspace_id, role, joined_at, workspaces(id, name, created_by)')
+      .eq('user_id', userId)
+      .order('joined_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to list membership workspaces: ${error.message}`);
+    }
+
+    return data || [];
+  }
 }

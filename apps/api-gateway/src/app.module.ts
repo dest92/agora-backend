@@ -14,6 +14,7 @@ import { WorkspacesController } from './http/workspaces.controller';
 import { SessionsController } from './http/sessions.controller';
 import { AuthController } from './http/auth.controller';
 import { ServicesHealthController } from './http/services-health.controller';
+import { UsersController } from './http/users.controller';
 import { SocketGateway } from './socket/socket.gateway';
 
 @Module({
@@ -67,6 +68,7 @@ import { SocketGateway } from './socket/socket.gateway';
     SessionsController,
     AuthController,
     ServicesHealthController,
+    UsersController,
   ],
   providers: [
     SocketGateway,

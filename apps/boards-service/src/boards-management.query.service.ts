@@ -21,7 +21,20 @@ export interface Lane {
 export class BoardsManagementQueryService {
   constructor(private readonly boardsManagementDao: BoardsManagementDao) {}
 
-  async listBoards(workspaceId: string): Promise<Board[]> {
+  async listBoards(workspaceId: string, userId?: string): Promise<Board[]> {
+    // Verify access if userId is provided
+    if (userId) {
+      const hasAccess = await this.boardsManagementDao.hasWorkspaceAccess(
+        workspaceId,
+        userId,
+      );
+      if (!hasAccess) {
+        throw new Error(
+          'Access denied: User is not a member of this workspace',
+        );
+      }
+    }
+
     const rows = await this.boardsManagementDao.listBoards(workspaceId);
 
     return rows.map((row) => ({

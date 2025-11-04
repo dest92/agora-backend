@@ -3,15 +3,23 @@ import {
   Post,
   Get,
   Body,
+  Param,
   Inject,
   UseGuards,
   Request,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { AuthGuard } from '@app/lib-auth';
 import { CreateWorkspaceDto } from '@app/lib-contracts';
+import { IsString } from 'class-validator';
+
+class AddMemberDto {
+  @IsString()
+  userId!: string;
+}
 
 /**
  * API Gateway Pattern: HTTP → TCP routing
@@ -53,6 +61,51 @@ export class WorkspacesController {
   async listWorkspaces(@Request() req: any) {
     return this.sessionsService.send(
       { cmd: 'workspaces.list' },
+      { userId: req.user.userId },
+    );
+  }
+
+  /**
+   * POST /workspaces/:workspaceId/members
+   * Add member to workspace
+   */
+  @Post(':workspaceId/members')
+  @HttpCode(HttpStatus.CREATED)
+  async addMember(
+    @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
+    @Body() dto: AddMemberDto,
+    @Request() req: any,
+  ) {
+    return this.sessionsService.send(
+      { cmd: 'workspaces.addMember' },
+      {
+        workspaceId,
+        userId: dto.userId,
+        addedBy: req.user.userId,
+      },
+    );
+  }
+
+  /**
+   * GET /workspaces/:workspaceId/members
+   * List workspace members
+   */
+  @Get(':workspaceId/members')
+  async listMembers(@Param('workspaceId', ParseUUIDPipe) workspaceId: string) {
+    return this.sessionsService.send(
+      { cmd: 'workspaces.listMembers' },
+      { workspaceId },
+    );
+  }
+
+  /**
+   * GET /workspaces/invites
+   * List workspaces where user is member (invitations received)
+   */
+  @Get('invites/list')
+  async listInvites(@Request() req: any) {
+    return this.sessionsService.send(
+      { cmd: 'workspaces.listInvites' },
       { userId: req.user.userId },
     );
   }

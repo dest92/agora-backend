@@ -122,6 +122,7 @@ export class BoardsManagementDao {
 
   /**
    * Listar boards de un workspace
+   * Verifica que el workspace existe en la tabla de workspaces
    */
   async listBoards(workspaceId: string): Promise<BoardRow[]> {
     const { data, error } = await this.supabase
@@ -135,6 +136,36 @@ export class BoardsManagementDao {
     }
 
     return data || [];
+  }
+
+  /**
+   * Verificar si un usuario tiene acceso a un workspace
+   * (es owner o es miembro)
+   */
+  async hasWorkspaceAccess(
+    workspaceId: string,
+    userId: string,
+  ): Promise<boolean> {
+    // Check if user is workspace owner
+    const { data: workspace } = await this.supabase
+      .from('workspaces')
+      .select('created_by')
+      .eq('id', workspaceId)
+      .single();
+
+    if (workspace && workspace.created_by === userId) {
+      return true;
+    }
+
+    // Check if user is workspace member
+    const { data: membership } = await this.supabase
+      .from('workspace_memberships')
+      .select('user_id')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', userId)
+      .single();
+
+    return !!membership;
   }
 
   /**

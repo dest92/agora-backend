@@ -61,8 +61,14 @@ export class BoardsController {
   }
 
   @Get('workspaces/:workspaceId/boards')
-  async listBoards(@Param('workspaceId', ParseUUIDPipe) workspaceId: string) {
-    return this.boardsService.send('boards.list', { workspaceId });
+  async listBoards(
+    @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
+    @Req() request: any,
+  ) {
+    return this.boardsService.send('boards.list', {
+      workspaceId,
+      userId: request.user.userId,
+    });
   }
 
   @Get(':boardId')

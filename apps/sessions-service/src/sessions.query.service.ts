@@ -57,4 +57,38 @@ export class SessionsQueryService {
       users: userIds,
     };
   }
+
+  /**
+   * Listar miembros de un workspace
+   * TCP Contract: { cmd: 'workspaces.listMembers' } → member details[]
+   */
+  async listWorkspaceMembers(params: { workspaceId: string }): Promise<any[]> {
+    const members = await this.workspacesDao.listMembers(params.workspaceId);
+
+    // Transform snake_case to camelCase
+    return members.map((member) => ({
+      userId: member.user_id,
+      role: member.role,
+      joinedAt: member.joined_at,
+    }));
+  }
+
+  /**
+   * Listar workspaces donde el usuario es miembro (invitaciones)
+   * TCP Contract: { cmd: 'workspaces.listInvites' } → invited workspaces[]
+   */
+  async listWorkspaceInvites(params: { userId: string }): Promise<any[]> {
+    const memberships = await this.workspacesDao.listMembershipWorkspaces(
+      params.userId,
+    );
+
+    // Transform to camelCase and flatten structure
+    return memberships.map((membership) => ({
+      workspaceId: membership.workspace_id,
+      workspaceName: membership.workspaces?.name || 'Unknown',
+      ownerId: membership.workspaces?.created_by || '',
+      role: membership.role,
+      joinedAt: membership.joined_at,
+    }));
+  }
 }

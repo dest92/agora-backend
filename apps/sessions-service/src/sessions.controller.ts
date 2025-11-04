@@ -35,6 +35,33 @@ export class SessionsController {
   }
 
   /**
+   * TCP Contract: workspaces.addMember
+   * Gateway → { cmd: 'workspaces.addMember', workspaceId, userId, addedBy }
+   */
+  @MessagePattern({ cmd: 'workspaces.addMember' })
+  async addMember(data: {
+    workspaceId: string;
+    userId: string;
+    addedBy: string;
+  }) {
+    return this.commandService.addWorkspaceMember(data);
+  }
+
+  /**
+   * TCP Contract: workspaces.listMembers
+   * Gateway → { cmd: 'workspaces.listMembers', workspaceId }
+   */
+  @MessagePattern({ cmd: 'workspaces.listMembers' })
+  async listMembers(data: { workspaceId: string }) {
+    return this.queryService.listWorkspaceMembers(data);
+  }
+
+  @MessagePattern({ cmd: 'workspaces.listInvites' })
+  async listInvites(data: { userId: string }) {
+    return this.queryService.listWorkspaceInvites(data);
+  }
+
+  /**
    * TCP Contract: sessions.create
    * Gateway → { cmd: 'sessions.create', workspaceId, title }
    */

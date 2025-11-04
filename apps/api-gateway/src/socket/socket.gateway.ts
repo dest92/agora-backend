@@ -24,6 +24,9 @@ export class SocketGateway
   @WebSocketServer()
   server!: Server;
 
+  // Track connected users per board
+  private boardUsers: Map<string, Set<string>> = new Map();
+
   constructor(@Inject('EventBus') private readonly eventBus: EventBus) {}
 
   async onModuleInit() {
@@ -36,7 +39,10 @@ export class SocketGateway
       'assignee',
       this.handleDomainEvent.bind(this),
     );
-    await this.eventBus.subscribe('workspace', this.handleDomainEvent.bind(this));
+    await this.eventBus.subscribe(
+      'workspace',
+      this.handleDomainEvent.bind(this),
+    );
     await this.eventBus.subscribe('session', this.handleDomainEvent.bind(this));
   }
 
@@ -44,11 +50,31 @@ export class SocketGateway
     const boardId = client.handshake.query.boardId as string;
     const workspaceId = client.handshake.query.workspaceId as string;
     const sessionId = client.handshake.query.sessionId as string;
+    const userId =
+      (client.handshake.query.userId as string) ||
+      (client.handshake.auth?.userId as string);
+
+    // Store userId in socket data for later use
+    client.data.userId = userId;
+    client.data.boardId = boardId;
 
     // Observer Pattern: Auto-join to rooms based on context
     if (boardId) {
       client.join(`room:board:${boardId}`);
-      console.log(`Client ${client.id} joined board ${boardId}`);
+      console.log(
+        `Client ${client.id} (user: ${userId}) joined board ${boardId}`,
+      );
+
+      // Track user presence in board
+      if (userId) {
+        if (!this.boardUsers.has(boardId)) {
+          this.boardUsers.set(boardId, new Set());
+        }
+        this.boardUsers.get(boardId)!.add(userId);
+
+        // Emit presence update to all clients in the board
+        this.emitPresenceUpdate(boardId);
+      }
     }
     if (workspaceId) {
       client.join(`room:workspace:${workspaceId}`);
@@ -61,13 +87,39 @@ export class SocketGateway
   }
 
   handleDisconnect(client: Socket): void {
-    console.log(`Client ${client.id} disconnected`);
+    const userId = client.data.userId;
+    const boardId = client.data.boardId;
+
+    console.log(`Client ${client.id} (user: ${userId}) disconnected`);
+
+    // Remove user from board presence
+    if (boardId && userId) {
+      const boardUserSet = this.boardUsers.get(boardId);
+      if (boardUserSet) {
+        boardUserSet.delete(userId);
+
+        // Clean up empty sets
+        if (boardUserSet.size === 0) {
+          this.boardUsers.delete(boardId);
+        }
+
+        // Emit presence update
+        this.emitPresenceUpdate(boardId);
+      }
+    }
+  }
+
+  private emitPresenceUpdate(boardId: string): void {
+    const users = Array.from(this.boardUsers.get(boardId) || []);
+    this.server.to(`room:board:${boardId}`).emit('presence:update', { users });
+    console.log(`Presence update for board ${boardId}:`, users);
   }
 
   @SubscribeMessage('join')
   handleJoin(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { boardId?: string; workspaceId?: string; sessionId?: string },
+    @MessageBody()
+    data: { boardId?: string; workspaceId?: string; sessionId?: string },
   ): void {
     if (data.boardId) {
       client.join(`room:board:${data.boardId}`);
@@ -83,7 +135,8 @@ export class SocketGateway
   @SubscribeMessage('leave')
   handleLeave(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { boardId?: string; workspaceId?: string; sessionId?: string },
+    @MessageBody()
+    data: { boardId?: string; workspaceId?: string; sessionId?: string },
   ): void {
     if (data.boardId) {
       client.leave(`room:board:${data.boardId}`);
