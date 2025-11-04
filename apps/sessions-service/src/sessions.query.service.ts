@@ -59,18 +59,14 @@ export class SessionsQueryService {
   }
 
   /**
-   * Listar miembros de un workspace
+   * Listar miembros de un workspace con sus detalles de usuario
    * TCP Contract: { cmd: 'workspaces.listMembers' } → member details[]
    */
   async listWorkspaceMembers(params: { workspaceId: string }): Promise<any[]> {
     const members = await this.workspacesDao.listMembers(params.workspaceId);
 
-    // Transform snake_case to camelCase
-    return members.map((member) => ({
-      userId: member.user_id,
-      role: member.role,
-      joinedAt: member.joined_at,
-    }));
+    // El DAO ya devuelve los datos en camelCase, solo retornarlos
+    return members;
   }
 
   /**
@@ -90,5 +86,19 @@ export class SessionsQueryService {
       role: membership.role,
       joinedAt: membership.joined_at,
     }));
+  }
+
+  /**
+   * Buscar usuarios por query (email o nombre)
+   * TCP Contract: { cmd: 'workspaces.searchUsers' } → user[]
+   */
+  async searchUsers(params: {
+    query: string;
+  }): Promise<Array<{ id: string; email: string; name: string }>> {
+    if (!params.query || params.query.trim().length < 2) {
+      return [];
+    }
+
+    return await this.workspacesDao.searchUsers(params.query);
   }
 }

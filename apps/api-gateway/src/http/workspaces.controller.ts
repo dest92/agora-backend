@@ -4,6 +4,7 @@ import {
   Get,
   Body,
   Param,
+  Query,
   Inject,
   UseGuards,
   Request,
@@ -107,6 +108,18 @@ export class WorkspacesController {
     return this.sessionsService.send(
       { cmd: 'workspaces.listInvites' },
       { userId: req.user.userId },
+    );
+  }
+
+  /**
+   * GET /workspaces/users/search?q=query
+   * Search users by email or name
+   */
+  @Get('users/search')
+  async searchUsers(@Query('q') query: string) {
+    return this.sessionsService.send(
+      { cmd: 'workspaces.searchUsers' },
+      { query },
     );
   }
 }

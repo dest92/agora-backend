@@ -98,7 +98,75 @@ export class WorkspacesDao {
   }
 
   /**
+   * Buscar usuario por email
+   * Retorna el UUID del usuario desde auth.users
+   * Usa la API de Supabase Auth Admin
+   */
+  async findUserByEmail(email: string): Promise<string | null> {
+    try {
+      // Usar Supabase Auth Admin API para listar usuarios
+      const { data, error } = await this.supabase.auth.admin.listUsers();
+
+      if (error || !data) {
+        console.error('Failed to list users:', error);
+        return null;
+      }
+
+      // Buscar usuario por email
+      const user = data.users.find((u) => u.email === email);
+
+      if (!user) {
+        return null;
+      }
+
+      return user.id;
+    } catch (error) {
+      console.error('Error finding user by email:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Buscar usuarios por query (email o metadata name)
+   * Retorna lista de usuarios con id, email y name
+   */
+  async searchUsers(
+    query: string,
+  ): Promise<Array<{ id: string; email: string; name: string }>> {
+    try {
+      const { data, error } = await this.supabase.auth.admin.listUsers();
+
+      if (error || !data) {
+        console.error('Failed to list users:', error);
+        return [];
+      }
+
+      const lowerQuery = query.toLowerCase();
+
+      // Filtrar usuarios que coincidan con el query
+      const matchingUsers = data.users
+        .filter((u) => {
+          const email = u.email?.toLowerCase() || '';
+          const name = u.user_metadata?.name?.toLowerCase() || '';
+          return email.includes(lowerQuery) || name.includes(lowerQuery);
+        })
+        .map((u) => ({
+          id: u.id,
+          email: u.email || '',
+          name: u.user_metadata?.name || u.email?.split('@')[0] || 'User',
+        }))
+        .slice(0, 10); // Limitar a 10 resultados
+
+      return matchingUsers;
+    } catch (error) {
+      console.error('Error searching users:', error);
+      return [];
+    }
+  }
+
+  /**
    * Listar miembros de un workspace
+   * Ahora incluye el email del usuario
    */
   async listMembers(workspaceId: string): Promise<any[]> {
     const { data, error } = await this.supabase
@@ -111,7 +179,67 @@ export class WorkspacesDao {
       throw new Error(`Failed to list workspace members: ${error.message}`);
     }
 
-    return data || [];
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Obtener emails de los usuarios desde Supabase Auth Admin API
+    try {
+      const membersWithEmails = await Promise.all(
+        data.map(async (member) => {
+          try {
+            const {
+              data: { users },
+              error: userError,
+            } = await this.supabase.auth.admin.listUsers();
+
+            if (userError) {
+              console.error(`Error fetching users:`, userError);
+              return {
+                userId: member.user_id,
+                email: null,
+                role: member.role,
+                joinedAt: member.joined_at,
+              };
+            }
+
+            const user = users.find((u) => u.id === member.user_id);
+
+            return {
+              userId: member.user_id,
+              email: user?.email || null,
+              name:
+                user?.user_metadata?.name ||
+                user?.email?.split('@')[0] ||
+                'Unknown',
+              role: member.role,
+              joinedAt: member.joined_at,
+            };
+          } catch (err) {
+            console.error(`Error fetching user ${member.user_id}:`, err);
+            return {
+              userId: member.user_id,
+              email: null,
+              name: 'Unknown',
+              role: member.role,
+              joinedAt: member.joined_at,
+            };
+          }
+        }),
+      );
+
+      return membersWithEmails;
+    } catch (error) {
+      console.error('Error enriching members with emails:', error);
+      // Return basic data if enrichment fails
+      return data.map((member) => ({
+        userId: member.user_id,
+        email: null,
+        name: 'Unknown',
+        role: member.role,
+        joinedAt: member.joined_at,
+      }));
+    }
   }
 
   /**

@@ -86,16 +86,35 @@ export class SessionsCommandService {
    * Agregar miembro a workspace
    * TCP Contract: { cmd: 'workspaces.addMember' } → { added: boolean }
    * Domain Event: workspace:memberAdded
+   * Acepta userId (UUID) o email
    */
   async addWorkspaceMember(params: {
     workspaceId: string;
     userId: string;
     addedBy: string;
   }): Promise<{ added: boolean }> {
+    let targetUserId = params.userId;
+
+    // Check if userId is actually an email
+    const isEmail = params.userId.includes('@');
+
+    if (isEmail) {
+      // Look up user by email
+      const foundUserId = await this.workspacesDao.findUserByEmail(
+        params.userId,
+      );
+
+      if (!foundUserId) {
+        throw new Error(`User with email ${params.userId} not found`);
+      }
+
+      targetUserId = foundUserId;
+    }
+
     // Write to DB
     await this.workspacesDao.addMember(
       params.workspaceId,
-      params.userId,
+      targetUserId,
       params.addedBy,
     );
 
@@ -104,7 +123,7 @@ export class SessionsCommandService {
       name: 'workspace:memberAdded',
       payload: {
         workspaceId: params.workspaceId,
-        userId: params.userId,
+        userId: targetUserId,
         addedBy: params.addedBy,
       },
       meta: {

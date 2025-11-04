@@ -62,6 +62,15 @@ export class SessionsController {
   }
 
   /**
+   * TCP Contract: workspaces.searchUsers
+   * Gateway → { cmd: 'workspaces.searchUsers', query }
+   */
+  @MessagePattern({ cmd: 'workspaces.searchUsers' })
+  async searchUsers(data: { query: string }) {
+    return this.queryService.searchUsers(data);
+  }
+
+  /**
    * TCP Contract: sessions.create
    * Gateway → { cmd: 'sessions.create', workspaceId, title }
    */

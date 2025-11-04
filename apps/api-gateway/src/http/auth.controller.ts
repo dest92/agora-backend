@@ -61,6 +61,7 @@ export class AuthController {
           {
             email: registerDto.email,
             password: registerDto.password,
+            data: registerDto.metadata || {}, // user_metadata
           },
           {
             headers: {
