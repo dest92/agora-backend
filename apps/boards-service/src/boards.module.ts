@@ -12,6 +12,9 @@ import { BoardsManagementQueryService } from './boards-management.query.service'
 import { VotesDao } from './votes.dao';
 import { VotesCommandService } from './votes.command.service';
 import { VotesQueryService } from './votes.query.service';
+import { AssigneesDao } from './assignees.dao';
+import { AssigneesCommandService } from './assignees.command.service';
+import { AssigneesQueryService } from './assignees.query.service';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), PgModule, EventsModule],
@@ -26,6 +29,9 @@ import { VotesQueryService } from './votes.query.service';
     VotesDao,
     VotesCommandService,
     VotesQueryService,
+    AssigneesDao,
+    AssigneesCommandService,
+    AssigneesQueryService,
   ],
 })
 export class BoardsModule {}

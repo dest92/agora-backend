@@ -219,4 +219,56 @@ export class BoardsController {
       voterId: request.user.userId,
     });
   }
+
+  // ===== Assignees Management =====
+  @Post(':boardId/cards/:cardId/assignees/:userId')
+  @HttpCode(HttpStatus.OK)
+  assignUser(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('cardId', ParseUUIDPipe) cardId: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ) {
+    console.log('🌐 [API-GATEWAY] POST assignees endpoint called:', {
+      boardId,
+      cardId,
+      userId,
+    });
+    return this.boardsService.send('assignees.assign', {
+      boardId,
+      cardId,
+      userId,
+    });
+  }
+
+  @Delete(':boardId/cards/:cardId/assignees/:userId')
+  @HttpCode(HttpStatus.OK)
+  unassignUser(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('cardId', ParseUUIDPipe) cardId: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ) {
+    return this.boardsService.send('assignees.remove', {
+      boardId,
+      cardId,
+      userId,
+    });
+  }
+
+  @Get(':boardId/cards/:cardId/assignees')
+  getAssignees(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('cardId', ParseUUIDPipe) cardId: string,
+  ) {
+    return this.boardsService.send('assignees.list', { cardId });
+  }
+
+  @Get(':boardId/assignees/me')
+  getMyAssignments(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.boardsService.send('assignees.user', {
+      userId: request.user.userId,
+    });
+  }
 }

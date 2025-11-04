@@ -6,6 +6,8 @@ import { BoardsManagementCommandService } from './boards-management.command.serv
 import { BoardsManagementQueryService } from './boards-management.query.service';
 import { VotesCommandService } from './votes.command.service';
 import { VotesQueryService } from './votes.query.service';
+import { AssigneesCommandService } from './assignees.command.service';
+import { AssigneesQueryService } from './assignees.query.service';
 
 @Controller()
 export class BoardsController {
@@ -16,6 +18,8 @@ export class BoardsController {
     private readonly boardsManagementQueryService: BoardsManagementQueryService,
     private readonly votesCommandService: VotesCommandService,
     private readonly votesQueryService: VotesQueryService,
+    private readonly assigneesCommandService: AssigneesCommandService,
+    private readonly assigneesQueryService: AssigneesQueryService,
   ) {}
 
   @MessagePattern('cards.create')
@@ -179,5 +183,60 @@ export class BoardsController {
   @MessagePattern('votes.user')
   async getUserVote(@Payload() data: { cardId: string; voterId: string }) {
     return this.votesQueryService.getUserVote(data.cardId, data.voterId);
+  }
+
+  // ===== Assignees Endpoints =====
+
+  @MessagePattern('assignees.assign')
+  async assignUser(
+    @Payload()
+    data: {
+      cardId: string;
+      userId: string;
+      boardId: string;
+    },
+  ) {
+    console.log(
+      '📨 [BOARDS-CONTROLLER] Received assignees.assign message:',
+      data,
+    );
+    const result = await this.assigneesCommandService.assignUser(
+      data.cardId,
+      data.userId,
+      data.boardId,
+    );
+    console.log('📤 [BOARDS-CONTROLLER] Assign result:', result);
+    return result;
+  }
+
+  @MessagePattern('assignees.remove')
+  async unassignUser(
+    @Payload()
+    data: {
+      cardId: string;
+      userId: string;
+      boardId: string;
+    },
+  ) {
+    return this.assigneesCommandService.unassignUser(
+      data.cardId,
+      data.userId,
+      data.boardId,
+    );
+  }
+
+  @MessagePattern('assignees.list')
+  async getAssignees(@Payload() data: { cardId: string }) {
+    console.log('📋 [BOARDS] Getting assignees for card:', data.cardId);
+    const assignees = await this.assigneesQueryService.getAssignees(
+      data.cardId,
+    );
+    console.log('📥 [BOARDS] Assignees found:', assignees);
+    return assignees;
+  }
+
+  @MessagePattern('assignees.user')
+  async getUserAssignments(@Payload() data: { userId: string }) {
+    return this.assigneesQueryService.getUserAssignments(data.userId);
   }
 }
