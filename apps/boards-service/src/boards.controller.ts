@@ -40,14 +40,15 @@ export class BoardsController {
     data: {
       cardId: string;
       boardId: string;
+      userId?: string;
       content?: string;
       laneId?: string;
       priority?: string;
       position?: number;
     },
   ) {
-    const { cardId, boardId, ...updates } = data;
-    return this.commandService.updateCard(cardId, boardId, updates);
+    const { cardId, boardId, userId, ...updates } = data;
+    return this.commandService.updateCard(cardId, boardId, updates, userId);
   }
 
   @MessagePattern('cards.archive')

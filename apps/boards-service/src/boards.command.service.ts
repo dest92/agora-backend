@@ -49,6 +49,7 @@ export class BoardsCommandService {
       priority?: string;
       position?: number;
     },
+    userId?: string,
   ) {
     const { previousLaneId, card } = await this.dao.updateCard(
       cardId,
@@ -66,12 +67,13 @@ export class BoardsCommandService {
       payload: {
         cardId: card.id,
         boardId: card.board_id,
-        laneId: card.lane_id,
+        targetLaneId: card.lane_id,
         priority: card.priority,
         position: card.position,
         content: card.content,
         archived: false,
         updatedAt: card.updated_at,
+        userId: userId || card.author_id,
       },
       meta: {
         boardId: card.board_id,

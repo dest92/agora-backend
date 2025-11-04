@@ -112,10 +112,12 @@ export class BoardsController {
     @Param('boardId', ParseUUIDPipe) boardId: string,
     @Param('cardId', ParseUUIDPipe) cardId: string,
     @Body() dto: UpdateCardDto,
+    @Req() request: any,
   ) {
     return this.boardsService.send('cards.update', {
       boardId,
       cardId,
+      userId: request.user.userId,
       ...dto,
     });
   }
