@@ -37,9 +37,12 @@ export class WorkspacesDao {
 
   /**
    * Crear workspace con owner usando Supabase REST API
-   * Tabla: workspaces (en schema public por defecto)
+   * Tabla: workspaces (en schema boards)
+   * Ahora también agrega al creador como owner en workspace_memberships
    */
   async createWorkspace(ownerId: string, name: string): Promise<WorkspaceRow> {
+    console.log('🏗️ Creating workspace:', { ownerId, name });
+
     const { data, error } = await this.supabase
       .from('workspaces')
       .insert({
@@ -50,7 +53,35 @@ export class WorkspacesDao {
       .single();
 
     if (error) {
+      console.error('❌ Failed to create workspace:', error);
       throw new Error(`Failed to create workspace: ${error.message}`);
+    }
+
+    console.log('✅ Workspace created:', data);
+
+    // Agregar al creador como owner en workspace_memberships
+    console.log('👤 Adding owner to workspace_memberships:', {
+      workspace_id: data.id,
+      user_id: ownerId,
+      role: 'owner',
+    });
+
+    const { error: memberError } = await this.supabase
+      .from('workspace_memberships')
+      .insert({
+        workspace_id: data.id,
+        user_id: ownerId,
+        role: 'owner',
+      });
+
+    if (memberError) {
+      console.error(
+        '❌ Failed to add owner to workspace_memberships:',
+        memberError,
+      );
+      // No fallar la creación del workspace si esto falla
+    } else {
+      console.log('✅ Owner added to workspace_memberships');
     }
 
     return data;
@@ -240,6 +271,47 @@ export class WorkspacesDao {
         joinedAt: member.joined_at,
       }));
     }
+  }
+
+  /**
+   * Actualizar rol de un miembro del workspace
+   * Solo owners pueden cambiar roles
+   */
+  async updateMemberRole(
+    workspaceId: string,
+    userId: string,
+    newRole: 'owner' | 'admin' | 'member',
+  ): Promise<void> {
+    const { error } = await this.supabase
+      .from('workspace_memberships')
+      .update({ role: newRole })
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new Error(`Failed to update member role: ${error.message}`);
+    }
+  }
+
+  /**
+   * Verificar si un usuario es owner de un workspace
+   */
+  async isWorkspaceOwner(
+    workspaceId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .from('workspace_memberships')
+      .select('role')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) {
+      return false;
+    }
+
+    return data.role === 'owner';
   }
 
   /**

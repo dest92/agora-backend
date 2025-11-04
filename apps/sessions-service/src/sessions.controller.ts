@@ -71,6 +71,20 @@ export class SessionsController {
   }
 
   /**
+   * TCP Contract: workspaces.updateMemberRole
+   * Gateway → { cmd: 'workspaces.updateMemberRole', workspaceId, userId, role, requestedBy }
+   */
+  @MessagePattern({ cmd: 'workspaces.updateMemberRole' })
+  async updateMemberRole(data: {
+    workspaceId: string;
+    userId: string;
+    role: 'owner' | 'admin' | 'member';
+    requestedBy: string;
+  }) {
+    return this.commandService.updateMemberRole(data);
+  }
+
+  /**
    * TCP Contract: sessions.create
    * Gateway → { cmd: 'sessions.create', workspaceId, title }
    */

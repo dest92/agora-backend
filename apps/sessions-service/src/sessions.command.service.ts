@@ -252,4 +252,52 @@ export class SessionsCommandService {
 
     return { left: true };
   }
+
+  /**
+   * Actualizar rol de miembro del workspace
+   * CQRS Command: updateMemberRole
+   * Solo owners pueden cambiar roles
+   */
+  async updateMemberRole(params: {
+    workspaceId: string;
+    userId: string;
+    role: 'owner' | 'admin' | 'member';
+    requestedBy: string;
+  }): Promise<{ updated: boolean }> {
+    // Verificar que el usuario solicitante sea owner
+    const isOwner = await this.workspacesDao.isWorkspaceOwner(
+      params.workspaceId,
+      params.requestedBy,
+    );
+
+    if (!isOwner) {
+      throw new Error('Only workspace owners can change member roles');
+    }
+
+    // Actualizar el rol
+    await this.workspacesDao.updateMemberRole(
+      params.workspaceId,
+      params.userId,
+      params.role,
+    );
+
+    // Publicar evento de dominio
+    const event: DomainEvent = {
+      name: 'workspace:member_role_changed',
+      payload: {
+        workspaceId: params.workspaceId,
+        userId: params.userId,
+        newRole: params.role,
+        changedBy: params.requestedBy,
+      },
+      meta: {
+        workspaceId: params.workspaceId,
+        occurredAt: new Date().toISOString(),
+      } as any,
+    };
+
+    await this.eventBus.publish(event);
+
+    return { updated: true };
+  }
 }

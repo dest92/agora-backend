@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Param,
   Query,
@@ -15,11 +16,17 @@ import {
 import { ClientProxy } from '@nestjs/microservices';
 import { AuthGuard } from '@app/lib-auth';
 import { CreateWorkspaceDto } from '@app/lib-contracts';
-import { IsString } from 'class-validator';
+import { IsString, IsIn } from 'class-validator';
 
 class AddMemberDto {
   @IsString()
   userId!: string;
+}
+
+class UpdateMemberRoleDto {
+  @IsString()
+  @IsIn(['owner', 'admin', 'member'])
+  role!: 'owner' | 'admin' | 'member';
 }
 
 /**
@@ -120,6 +127,29 @@ export class WorkspacesController {
     return this.sessionsService.send(
       { cmd: 'workspaces.searchUsers' },
       { query },
+    );
+  }
+
+  /**
+   * PATCH /workspaces/:workspaceId/members/:userId/role
+   * Update member role (only owners can do this)
+   */
+  @Patch(':workspaceId/members/:userId/role')
+  @HttpCode(HttpStatus.OK)
+  async updateMemberRole(
+    @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
+    @Body() dto: UpdateMemberRoleDto,
+    @Request() req: any,
+  ) {
+    return this.sessionsService.send(
+      { cmd: 'workspaces.updateMemberRole' },
+      {
+        workspaceId,
+        userId,
+        role: dto.role,
+        requestedBy: req.user.userId,
+      },
     );
   }
 }
