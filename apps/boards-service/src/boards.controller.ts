@@ -2,12 +2,16 @@ import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { BoardsCommandService } from './boards.command.service';
 import { BoardsQueryService } from './boards.query.service';
+import { BoardsManagementCommandService } from './boards-management.command.service';
+import { BoardsManagementQueryService } from './boards-management.query.service';
 
 @Controller()
 export class BoardsController {
   constructor(
     private readonly commandService: BoardsCommandService,
     private readonly queryService: BoardsQueryService,
+    private readonly boardsManagementCommandService: BoardsManagementCommandService,
+    private readonly boardsManagementQueryService: BoardsManagementQueryService,
   ) {}
 
   @MessagePattern('cards.create')
@@ -19,7 +23,7 @@ export class BoardsController {
       content: string;
       priority: string;
       position: number;
-      laneId?: string;
+      laneId?: string; // Optional
     },
   ) {
     return this.commandService.createCard(data);
@@ -69,5 +73,29 @@ export class BoardsController {
   @MessagePattern({ cmd: 'health.ping' })
   healthPing(): { ok: boolean } {
     return { ok: true };
+  }
+
+  // ===== Board Management Endpoints =====
+
+  @MessagePattern('boards.create')
+  async createBoard(
+    @Payload()
+    data: {
+      workspaceId: string;
+      title: string;
+      createdBy: string;
+    },
+  ) {
+    return this.boardsManagementCommandService.createBoard(data);
+  }
+
+  @MessagePattern('boards.list')
+  async listBoards(@Payload() data: { workspaceId: string }) {
+    return this.boardsManagementQueryService.listBoards(data.workspaceId);
+  }
+
+  @MessagePattern('boards.get')
+  async getBoard(@Payload() data: { boardId: string }) {
+    return this.boardsManagementQueryService.getBoard(data.boardId);
   }
 }

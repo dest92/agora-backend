@@ -6,10 +6,20 @@ import { BoardsController } from './boards.controller';
 import { BoardsCommandService } from './boards.command.service';
 import { BoardsQueryService } from './boards.query.service';
 import { BoardsDao } from './boards.dao';
+import { BoardsManagementDao } from './boards-management.dao';
+import { BoardsManagementCommandService } from './boards-management.command.service';
+import { BoardsManagementQueryService } from './boards-management.query.service';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), PgModule, EventsModule],
   controllers: [BoardsController],
-  providers: [BoardsCommandService, BoardsQueryService, BoardsDao],
+  providers: [
+    BoardsCommandService,
+    BoardsQueryService,
+    BoardsDao,
+    BoardsManagementDao,
+    BoardsManagementCommandService,
+    BoardsManagementQueryService,
+  ],
 })
 export class BoardsModule {}

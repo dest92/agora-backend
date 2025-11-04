@@ -38,8 +38,8 @@ export class WorkspacesController {
   ) {
     return this.sessionsService.send(
       { cmd: 'workspaces.create' },
-      { 
-        ownerId: req.user.id,
+      {
+        ownerId: req.user.userId,
         name: createWorkspaceDto.name,
       },
     );
@@ -53,7 +53,7 @@ export class WorkspacesController {
   async listWorkspaces(@Request() req: any) {
     return this.sessionsService.send(
       { cmd: 'workspaces.list' },
-      { userId: req.user.id },
+      { userId: req.user.userId },
     );
   }
 }

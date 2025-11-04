@@ -28,7 +28,7 @@ export class BoardsCommandService {
         authorId: card.author_id,
         priority: card.priority,
         position: card.position,
-        createdAt: card.created_at.toISOString(),
+        createdAt: card.created_at,
       },
       meta: {
         boardId: card.board_id,
@@ -71,7 +71,7 @@ export class BoardsCommandService {
         position: card.position,
         content: card.content,
         archived: false,
-        updatedAt: card.updated_at.toISOString(),
+        updatedAt: card.updated_at,
       },
       meta: {
         boardId: card.board_id,
@@ -95,7 +95,7 @@ export class BoardsCommandService {
         priority: card.priority,
         position: card.position,
         archived: true,
-        updatedAt: card.archived_at?.toISOString(),
+        updatedAt: card.archived_at,
       },
       meta: {
         boardId: card.board_id,
@@ -119,7 +119,7 @@ export class BoardsCommandService {
         priority: card.priority,
         position: card.position,
         archived: false,
-        updatedAt: card.updated_at.toISOString(),
+        updatedAt: card.updated_at,
       },
       meta: {
         boardId: card.board_id,

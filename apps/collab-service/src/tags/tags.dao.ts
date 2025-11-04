@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PgService, sql } from '@app/lib-db';
+import { createClient } from '@supabase/supabase-js';
 
 /**
- * DAO Pattern: SQL parametrizado sin ORM
- * Singleton: PgService inyectado como @Global
+ * DAO Pattern: Usando Supabase REST API
+ * Evita problemas de conexión directa a PostgreSQL
  */
 
 interface TagRow {
@@ -20,65 +20,110 @@ interface CardTagRow {
 
 @Injectable()
 export class TagsDao {
-  constructor(private readonly pg: PgService) {}
+  private supabase;
+
+  constructor() {
+    this.supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        db: {
+          schema: 'boards',
+        },
+      },
+    );
+  }
 
   /**
-   * Crear tag con ON CONFLICT para unicidad por (board_id, label)
-   * Patrón: Upsert con COALESCE para preservar color existente
+   * Crear tag con upsert para unicidad por (board_id, label)
    */
   async tagsCreate(
     boardId: string,
     label: string,
     color?: string,
   ): Promise<TagRow> {
-    const query = sql`
-      INSERT INTO boards.tags (board_id, label, color)
-      VALUES (${boardId}, ${label}, ${color || null})
-      ON CONFLICT (board_id, label) DO UPDATE
-      SET color = COALESCE(EXCLUDED.color, boards.tags.color)
-      RETURNING id, board_id, label, color
-    `;
-    const result = await this.pg.query<TagRow>(query);
-    return result.rows[0];
+    const { data, error } = await this.supabase
+      .from('tags')
+      .upsert(
+        {
+          board_id: boardId,
+          label: label,
+          color: color || null,
+        },
+        {
+          onConflict: 'board_id,label',
+        },
+      )
+      .select('id, board_id, label, color')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create tag: ${error.message}`);
+    }
+
+    return data;
   }
 
   /**
    * Listar tags del board ordenados alfabéticamente
    */
   async tagsList(boardId: string): Promise<TagRow[]> {
-    const query = sql`
-      SELECT id, board_id, label, color
-      FROM boards.tags
-      WHERE board_id = ${boardId}
-      ORDER BY label ASC
-    `;
-    const result = await this.pg.query<TagRow>(query);
-    return result.rows;
+    const { data, error } = await this.supabase
+      .from('tags')
+      .select('id, board_id, label, color')
+      .eq('board_id', boardId)
+      .order('label', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to list tags: ${error.message}`);
+    }
+
+    return data || [];
   }
 
   /**
-   * Asignar tag a card con ON CONFLICT DO NOTHING para idempotencia
-   * Patrón: Pivot table con constraint unique(card_id, tag_id)
+   * Asignar tag a card con upsert para idempotencia
    */
   async tagAssign(cardId: string, tagId: string): Promise<CardTagRow | null> {
-    const query = sql`
-      INSERT INTO boards.card_tags (card_id, tag_id)
-      VALUES (${cardId}, ${tagId})
-      ON CONFLICT (card_id, tag_id) DO NOTHING
-      RETURNING card_id, tag_id
-    `;
-    const result = await this.pg.query<CardTagRow>(query);
-    return result.rows[0] || null;
+    const { data, error } = await this.supabase
+      .from('card_tags')
+      .upsert(
+        {
+          card_id: cardId,
+          tag_id: tagId,
+        },
+        {
+          onConflict: 'card_id,tag_id',
+          ignoreDuplicates: true,
+        },
+      )
+      .select('card_id, tag_id')
+      .single();
+
+    if (error && error.code !== '23505') {
+      // Ignore unique constraint violations
+      throw new Error(`Failed to assign tag: ${error.message}`);
+    }
+
+    return data || null;
   }
 
   /**
    * Desasignar tag de card
    */
   async tagUnassign(cardId: string, tagId: string): Promise<void> {
-    const query = sql`
-      DELETE FROM boards.card_tags 
-      WHERE card_id = ${cardId} AND tag_id = ${tagId}
-    `;
-    await this.pg.query(query);
+    const { error } = await this.supabase
+      .from('card_tags')
+      .delete()
+      .eq('card_id', cardId)
+      .eq('tag_id', tagId);
+
+    if (error) {
+      throw new Error(`Failed to unassign tag: ${error.message}`);
+    }
   }
 }

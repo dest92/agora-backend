@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PgService, sql } from '@app/lib-db';
+import { createClient } from '@supabase/supabase-js';
 
 /**
- * DAO Pattern: SQL parametrizado sin ORM
- * Singleton: PgService inyectado como @Global
+ * DAO Pattern: Usando Supabase REST API
+ * Evita problemas de conexión directa a PostgreSQL
  * Microservices: Sessions domain separation
  */
 
@@ -22,64 +22,111 @@ interface SessionParticipantRow {
 
 @Injectable()
 export class SessionsDao {
-  constructor(private readonly pg: PgService) {}
+  private supabase;
+
+  constructor() {
+    this.supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        db: {
+          schema: 'sessions',
+        },
+      },
+    );
+  }
 
   /**
-   * Crear sesión activa en workspace
-   * Tabla: sessions.active_sessions (o sessions.sessions según esquema)
+   * Crear sesión activa en workspace usando Supabase REST API
    */
   async createSession(workspaceId: string, title: string): Promise<SessionRow> {
-    const query = sql`
-      INSERT INTO sessions.sessions (workspace_id, title, created_at)
-      VALUES (${workspaceId}, ${title}, NOW())
-      RETURNING id, workspace_id, title, created_at
-    `;
-    const result = await this.pg.query<SessionRow>(query);
-    return result.rows[0];
+    const { data, error } = await this.supabase
+      .from('sessions')
+      .insert({
+        workspace_id: workspaceId,
+        title: title,
+      })
+      .select('id, workspace_id, title, created_at')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create session: ${error.message}`);
+    }
+
+    return data;
   }
 
   /**
-   * Unirse a sesión (idempotente)
-   * Tabla pivot: sessions.session_participants
-   * ON CONFLICT DO NOTHING para idempotencia
+   * Unirse a sesión (idempotente) usando upsert de Supabase
    */
-  async joinSession(sessionId: string, userId: string): Promise<SessionParticipantRow | null> {
-    const query = sql`
-      INSERT INTO sessions.session_participants (session_id, user_id, joined_at)
-      VALUES (${sessionId}, ${userId}, NOW())
-      ON CONFLICT (session_id, user_id) DO NOTHING
-      RETURNING session_id, user_id, joined_at
-    `;
-    const result = await this.pg.query<SessionParticipantRow>(query);
-    return result.rows[0] || null;
+  async joinSession(
+    sessionId: string,
+    userId: string,
+  ): Promise<SessionParticipantRow | null> {
+    const { data, error } = await this.supabase
+      .from('session_participants')
+      .upsert(
+        {
+          session_id: sessionId,
+          user_id: userId,
+          joined_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'session_id,user_id',
+          ignoreDuplicates: true,
+        },
+      )
+      .select('session_id, user_id, joined_at')
+      .single();
+
+    if (error && error.code !== '23505') {
+      // Ignore unique constraint violations
+      throw new Error(`Failed to join session: ${error.message}`);
+    }
+
+    return data || null;
   }
 
   /**
-   * Salir de sesión
-   * DELETE para remover participación
+   * Salir de sesión usando DELETE de Supabase
    */
-  async leaveSession(sessionId: string, userId: string): Promise<SessionParticipantRow | null> {
-    const query = sql`
-      DELETE FROM sessions.session_participants 
-      WHERE session_id = ${sessionId} AND user_id = ${userId}
-      RETURNING session_id, user_id, joined_at
-    `;
-    const result = await this.pg.query<SessionParticipantRow>(query);
-    return result.rows[0] || null;
+  async leaveSession(
+    sessionId: string,
+    userId: string,
+  ): Promise<SessionParticipantRow | null> {
+    const { data, error } = await this.supabase
+      .from('session_participants')
+      .delete()
+      .eq('session_id', sessionId)
+      .eq('user_id', userId)
+      .select('session_id, user_id, joined_at')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to leave session: ${error.message}`);
+    }
+
+    return data || null;
   }
 
   /**
-   * Obtener participantes de sesión desde DB
-   * Para sincronizar con Redis si es necesario
+   * Obtener participantes de sesión desde Supabase
    */
   async getSessionParticipants(sessionId: string): Promise<string[]> {
-    const query = sql`
-      SELECT user_id
-      FROM sessions.session_participants
-      WHERE session_id = ${sessionId}
-      ORDER BY joined_at ASC
-    `;
-    const result = await this.pg.query<{ user_id: string }>(query);
-    return result.rows.map(row => row.user_id);
+    const { data, error } = await this.supabase
+      .from('session_participants')
+      .select('user_id')
+      .eq('session_id', sessionId)
+      .order('joined_at', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to get session participants: ${error.message}`);
+    }
+
+    return (data || []).map((row: any) => row.user_id);
   }
 }

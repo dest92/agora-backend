@@ -50,12 +50,15 @@ export class SessionsCommandService {
     name: string;
   }): Promise<Workspace> {
     // Write to DB
-    const row = await this.workspacesDao.createWorkspace(params.ownerId, params.name);
+    const row = await this.workspacesDao.createWorkspace(
+      params.ownerId,
+      params.name,
+    );
 
     // Map DB row to domain object
     const workspace: Workspace = {
       id: row.id,
-      ownerId: row.owner_id,
+      ownerId: row.created_by,
       name: row.name,
       createdAt: row.created_at,
     };
@@ -89,7 +92,10 @@ export class SessionsCommandService {
     title: string;
   }): Promise<Session> {
     // Write to DB
-    const row = await this.sessionsDao.createSession(params.workspaceId, params.title);
+    const row = await this.sessionsDao.createSession(
+      params.workspaceId,
+      params.title,
+    );
 
     // Map DB row to domain object
     const session: Session = {
@@ -129,7 +135,10 @@ export class SessionsCommandService {
     workspaceId?: string;
   }): Promise<JoinResult> {
     // Write to DB (idempotent with ON CONFLICT DO NOTHING)
-    const dbResult = await this.sessionsDao.joinSession(params.sessionId, params.userId);
+    const dbResult = await this.sessionsDao.joinSession(
+      params.sessionId,
+      params.userId,
+    );
 
     // Solo publicar evento si realmente se unió (no era duplicado)
     if (dbResult) {
@@ -163,7 +172,10 @@ export class SessionsCommandService {
     workspaceId?: string;
   }): Promise<LeaveResult> {
     // Write to DB
-    const dbResult = await this.sessionsDao.leaveSession(params.sessionId, params.userId);
+    const dbResult = await this.sessionsDao.leaveSession(
+      params.sessionId,
+      params.userId,
+    );
 
     // Solo publicar evento si realmente se removió algo
     if (dbResult) {

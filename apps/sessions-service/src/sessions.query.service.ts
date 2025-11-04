@@ -35,9 +35,9 @@ export class SessionsQueryService {
     const rows = await this.workspacesDao.listWorkspaces(params.userId);
 
     // Map DB rows to domain objects
-    return rows.map(row => ({
+    return rows.map((row) => ({
       id: row.id,
-      ownerId: row.owner_id,
+      ownerId: row.created_by,
       name: row.name,
       createdAt: row.created_at,
     }));
@@ -49,7 +49,9 @@ export class SessionsQueryService {
    * Por ahora desde DB, después se puede optimizar con Redis
    */
   async getPresence(params: { sessionId: string }): Promise<PresenceResult> {
-    const userIds = await this.sessionsDao.getSessionParticipants(params.sessionId);
+    const userIds = await this.sessionsDao.getSessionParticipants(
+      params.sessionId,
+    );
 
     return {
       users: userIds,
