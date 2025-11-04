@@ -136,6 +136,33 @@ export class BoardsCommandService {
     return { refreshed: true };
   }
 
+  async createComment(input: {
+    cardId: string;
+    authorId: string;
+    content: string;
+    boardId: string;
+  }) {
+    const comment = await this.dao.createComment(input);
+
+    const event: DomainEvent = {
+      name: 'comment:created',
+      payload: {
+        commentId: comment.id,
+        cardId: comment.card_id,
+        authorId: comment.author_id,
+        content: comment.content,
+        createdAt: comment.created_at,
+      },
+      meta: {
+        boardId: input.boardId,
+        occurredAt: new Date().toISOString(),
+      },
+    };
+
+    await this.eventBus.publish(event);
+    return this.mapToComment(comment);
+  }
+
   private mapToCard(row: any) {
     return {
       id: row.id,
@@ -148,6 +175,16 @@ export class BoardsCommandService {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       archivedAt: row.archived_at,
+    };
+  }
+
+  private mapToComment(row: any) {
+    return {
+      id: row.id,
+      cardId: row.card_id,
+      authorId: row.author_id,
+      content: row.content,
+      createdAt: row.created_at,
     };
   }
 }

@@ -8,4 +8,5 @@ export * from './sessions/create-session.dto';
 // Legacy exports (keep existing structure)
 export * from './dto/list-cards.query';
 export * from './dto/update-card.dto';
+export * from './dto/create-comment.dto';
 export * from './types/card.types';

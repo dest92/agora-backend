@@ -60,6 +60,24 @@ export class BoardsController {
     return this.commandService.unarchiveCard(data.cardId, data.boardId);
   }
 
+  @MessagePattern('comments.create')
+  async createComment(
+    @Payload()
+    data: {
+      cardId: string;
+      boardId: string;
+      authorId: string;
+      content: string;
+    },
+  ) {
+    return this.commandService.createComment(data);
+  }
+
+  @MessagePattern('comments.list')
+  async listComments(@Payload() data: { cardId: string; boardId: string }) {
+    return this.queryService.listComments(data.cardId);
+  }
+
   @MessagePattern({ cmd: 'boards.refresh_projections' })
   async refreshProjections(): Promise<{ refreshed: boolean }> {
     await this.commandService.refreshProjections();

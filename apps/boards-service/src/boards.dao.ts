@@ -14,6 +14,14 @@ interface CardRow {
   archived_at: Date | null;
 }
 
+interface CommentRow {
+  id: string;
+  card_id: string;
+  author_id: string;
+  content: string;
+  created_at: Date;
+}
+
 @Injectable()
 export class BoardsDao {
   private supabase;
@@ -189,5 +197,43 @@ export class BoardsDao {
     } catch {
       // Ignore if function doesn't exist
     }
+  }
+
+  // ===== Comments =====
+
+  async createComment(input: {
+    cardId: string;
+    authorId: string;
+    content: string;
+  }): Promise<CommentRow> {
+    const { data, error } = await this.supabase
+      .from('comments')
+      .insert({
+        card_id: input.cardId,
+        author_id: input.authorId,
+        content: input.content,
+      })
+      .select('id, card_id, author_id, content, created_at')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create comment: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async listComments(cardId: string): Promise<CommentRow[]> {
+    const { data, error } = await this.supabase
+      .from('comments')
+      .select('id, card_id, author_id, content, created_at')
+      .eq('card_id', cardId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to list comments: ${error.message}`);
+    }
+
+    return data || [];
   }
 }
