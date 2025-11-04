@@ -1,14 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { BoardsManagementDao } from './boards-management.dao';
-
-interface Board {
-  id: string;
-  workspaceId: string;
-  teamId: string;
-  title: string;
-  createdBy: string;
-  createdAt: string;
-}
+import { Board } from './boards-management.command.service';
 
 export interface Lane {
   id: string;

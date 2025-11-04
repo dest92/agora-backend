@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable } from '@nestjs/common';
 import { createClient } from '@supabase/supabase-js';
 
@@ -6,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
  * Separado de boards.dao.ts que maneja cards
  */
 
-interface BoardRow {
+export interface BoardRow {
   id: string;
   workspace_id: string;
   team_id: string;
@@ -15,11 +18,11 @@ interface BoardRow {
   created_at: string;
 }
 
-interface TeamRow {
+export interface LaneRow {
   id: string;
+  board_id: string;
   name: string;
-  created_by: string;
-  created_at: string;
+  position: number;
 }
 
 @Injectable()
@@ -28,8 +31,8 @@ export class BoardsManagementDao {
 
   constructor() {
     this.supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
       {
         auth: {
           autoRefreshToken: false,
@@ -62,7 +65,7 @@ export class BoardsManagementDao {
     let teamId: string;
 
     if (existingTeam) {
-      teamId = existingTeam.id;
+      teamId = (existingTeam as { id: string }).id;
     } else {
       // 2. Si no existe team, crear uno por defecto
       const { data: newTeam, error: teamError } = await this.supabase
@@ -78,7 +81,7 @@ export class BoardsManagementDao {
         throw new Error(`Failed to create team: ${teamError.message}`);
       }
 
-      teamId = newTeam.id;
+      teamId = (newTeam as { id: string }).id;
     }
 
     // 3. Crear el board
@@ -98,9 +101,9 @@ export class BoardsManagementDao {
     }
 
     // 4. Crear lanes por defecto para el board
-    await this.createDefaultLanes(data.id);
+    await this.createDefaultLanes((data as BoardRow).id);
 
-    return data;
+    return data as BoardRow;
   }
 
   /**
@@ -135,7 +138,7 @@ export class BoardsManagementDao {
       throw new Error(`Failed to list boards: ${error.message}`);
     }
 
-    return data || [];
+    return (data as BoardRow[]) || [];
   }
 
   /**
@@ -153,7 +156,10 @@ export class BoardsManagementDao {
       .eq('id', workspaceId)
       .single();
 
-    if (workspace && workspace.created_by === userId) {
+    if (
+      workspace &&
+      (workspace as { created_by: string }).created_by === userId
+    ) {
       return true;
     }
 
@@ -182,13 +188,13 @@ export class BoardsManagementDao {
       throw new Error(`Failed to get board: ${error.message}`);
     }
 
-    return data;
+    return data as BoardRow;
   }
 
   /**
    * Obtener lanes de un board
    */
-  async getLanes(boardId: string): Promise<any[]> {
+  async getLanes(boardId: string): Promise<LaneRow[]> {
     const { data, error } = await this.supabase
       .from('lanes')
       .select('id, board_id, name, position')
@@ -199,6 +205,6 @@ export class BoardsManagementDao {
       throw new Error(`Failed to get lanes: ${error.message}`);
     }
 
-    return data || [];
+    return (data as LaneRow[]) || [];
   }
 }

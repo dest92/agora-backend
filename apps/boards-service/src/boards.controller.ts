@@ -4,6 +4,8 @@ import { BoardsCommandService } from './boards.command.service';
 import { BoardsQueryService } from './boards.query.service';
 import { BoardsManagementCommandService } from './boards-management.command.service';
 import { BoardsManagementQueryService } from './boards-management.query.service';
+import { VotesCommandService } from './votes.command.service';
+import { VotesQueryService } from './votes.query.service';
 
 @Controller()
 export class BoardsController {
@@ -12,6 +14,8 @@ export class BoardsController {
     private readonly queryService: BoardsQueryService,
     private readonly boardsManagementCommandService: BoardsManagementCommandService,
     private readonly boardsManagementQueryService: BoardsManagementQueryService,
+    private readonly votesCommandService: VotesCommandService,
+    private readonly votesQueryService: VotesQueryService,
   ) {}
 
   @MessagePattern('cards.create')
@@ -124,5 +128,56 @@ export class BoardsController {
   @MessagePattern('boards.lanes')
   async getLanes(@Payload() data: { boardId: string }) {
     return this.boardsManagementQueryService.getLanes(data.boardId);
+  }
+
+  // ===== Votes Endpoints =====
+
+  @MessagePattern('votes.vote')
+  async voteCard(
+    @Payload()
+    data: {
+      cardId: string;
+      boardId: string;
+      voterId: string;
+      voteType: 'up' | 'down';
+    },
+  ) {
+    return this.votesCommandService.voteCard(
+      data.cardId,
+      data.boardId,
+      data.voterId,
+      data.voteType,
+    );
+  }
+
+  @MessagePattern('votes.remove')
+  async removeVote(
+    @Payload()
+    data: {
+      cardId: string;
+      boardId: string;
+      voterId: string;
+    },
+  ) {
+    return this.votesCommandService.removeVote(
+      data.cardId,
+      data.boardId,
+      data.voterId,
+    );
+  }
+
+  @MessagePattern('votes.summary')
+  async getVoteSummary(@Payload() data: { cardId: string }) {
+    return this.votesQueryService.getVoteSummary(data.cardId);
+  }
+
+  @MessagePattern('votes.voters')
+  async getVoters(@Payload() data: { cardId: string }) {
+    return this.votesQueryService.getVoters(data.cardId);
+  }
+
+  @MessagePattern('votes.user')
+  async getUserVote(@Payload() data: { cardId: string; voterId: string }) {
+    return this.votesQueryService.getUserVote(data.cardId, data.voterId);
   }
 }

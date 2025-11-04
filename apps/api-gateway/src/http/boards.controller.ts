@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -15,6 +16,14 @@ import {
 import { ClientProxy } from '@nestjs/microservices';
 import { UpdateCardDto, ListCardsQuery } from '@app/lib-contracts';
 import { IsString, IsOptional, IsNumber } from 'class-validator';
+
+// Request interface with authenticated user
+interface AuthenticatedRequest {
+  user: {
+    userId: string;
+    email?: string;
+  };
+}
 
 // Temporary inline DTO until lib-contracts is properly structured
 class CreateCardDto {
@@ -48,10 +57,10 @@ export class BoardsController {
   // ===== Board Management =====
   @Post('workspaces/:workspaceId/boards')
   @HttpCode(HttpStatus.CREATED)
-  async createBoard(
+  createBoard(
     @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
     @Body() dto: CreateBoardDto,
-    @Req() request: any,
+    @Req() request: AuthenticatedRequest,
   ) {
     return this.boardsService.send('boards.create', {
       workspaceId,
@@ -61,9 +70,9 @@ export class BoardsController {
   }
 
   @Get('workspaces/:workspaceId/boards')
-  async listBoards(
+  listBoards(
     @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
-    @Req() request: any,
+    @Req() request: AuthenticatedRequest,
   ) {
     return this.boardsService.send('boards.list', {
       workspaceId,
@@ -72,22 +81,22 @@ export class BoardsController {
   }
 
   @Get(':boardId')
-  async getBoard(@Param('boardId', ParseUUIDPipe) boardId: string) {
+  getBoard(@Param('boardId', ParseUUIDPipe) boardId: string) {
     return this.boardsService.send('boards.get', { boardId });
   }
 
   @Get(':boardId/lanes')
-  async getLanes(@Param('boardId', ParseUUIDPipe) boardId: string) {
+  getLanes(@Param('boardId', ParseUUIDPipe) boardId: string) {
     return this.boardsService.send('boards.lanes', { boardId });
   }
 
   // ===== Card Management =====
   @Post(':boardId/cards')
   @HttpCode(HttpStatus.CREATED)
-  async createCard(
+  createCard(
     @Param('boardId', ParseUUIDPipe) boardId: string,
     @Body() dto: CreateCardDto,
-    @Req() request: any,
+    @Req() request: AuthenticatedRequest,
   ) {
     return this.boardsService.send('cards.create', {
       boardId,
@@ -97,7 +106,7 @@ export class BoardsController {
   }
 
   @Get(':boardId/cards')
-  async listCards(
+  listCards(
     @Param('boardId', ParseUUIDPipe) boardId: string,
     @Query() query: ListCardsQuery,
   ) {
@@ -108,11 +117,11 @@ export class BoardsController {
   }
 
   @Patch(':boardId/cards/:cardId')
-  async updateCard(
+  updateCard(
     @Param('boardId', ParseUUIDPipe) boardId: string,
     @Param('cardId', ParseUUIDPipe) cardId: string,
     @Body() dto: UpdateCardDto,
-    @Req() request: any,
+    @Req() request: AuthenticatedRequest,
   ) {
     return this.boardsService.send('cards.update', {
       boardId,
@@ -124,7 +133,7 @@ export class BoardsController {
 
   @Post(':boardId/cards/:cardId/archive')
   @HttpCode(HttpStatus.OK)
-  async archiveCard(
+  archiveCard(
     @Param('boardId', ParseUUIDPipe) boardId: string,
     @Param('cardId', ParseUUIDPipe) cardId: string,
   ) {
@@ -136,7 +145,7 @@ export class BoardsController {
 
   @Post(':boardId/cards/:cardId/unarchive')
   @HttpCode(HttpStatus.OK)
-  async unarchiveCard(
+  unarchiveCard(
     @Param('boardId', ParseUUIDPipe) boardId: string,
     @Param('cardId', ParseUUIDPipe) cardId: string,
   ) {
@@ -148,7 +157,66 @@ export class BoardsController {
 
   @Post(':boardId/projections/refresh')
   @HttpCode(HttpStatus.OK)
-  async refreshProjections(@Param('boardId', ParseUUIDPipe) boardId: string) {
+  refreshProjections(@Param('boardId', ParseUUIDPipe) boardId: string) {
     return this.boardsService.send('projections.refresh', { boardId });
+  }
+
+  // ===== Votes Management =====
+  @Post(':boardId/cards/:cardId/vote')
+  @HttpCode(HttpStatus.OK)
+  voteCard(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('cardId', ParseUUIDPipe) cardId: string,
+    @Body() body: { voteType: 'up' | 'down' },
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.boardsService.send('votes.vote', {
+      boardId,
+      cardId,
+      voterId: request.user.userId,
+      voteType: body.voteType,
+    });
+  }
+
+  @Delete(':boardId/cards/:cardId/vote')
+  @HttpCode(HttpStatus.OK)
+  removeVote(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('cardId', ParseUUIDPipe) cardId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.boardsService.send('votes.remove', {
+      boardId,
+      cardId,
+      voterId: request.user.userId,
+    });
+  }
+
+  @Get(':boardId/cards/:cardId/votes/summary')
+  getVoteSummary(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('cardId', ParseUUIDPipe) cardId: string,
+  ) {
+    return this.boardsService.send('votes.summary', { cardId });
+  }
+
+  @Get(':boardId/cards/:cardId/votes/voters')
+  getVoters(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('cardId', ParseUUIDPipe) cardId: string,
+  ) {
+    return this.boardsService.send('votes.voters', { cardId });
+  }
+
+  @Get(':boardId/cards/:cardId/votes/me')
+  getMyVote(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('cardId', ParseUUIDPipe) cardId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.boardsService.send('votes.user', {
+      cardId,
+      voterId: request.user.userId,
+    });
   }
 }
