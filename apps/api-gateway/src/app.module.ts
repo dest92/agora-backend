@@ -16,6 +16,7 @@ import { SessionsController } from './http/sessions.controller';
 import { AuthController } from './http/auth.controller';
 import { ServicesHealthController } from './http/services-health.controller';
 import { UsersController } from './http/users.controller';
+import { NotificationsController } from './http/notifications.controller';
 import { SocketGateway } from './socket/socket.gateway';
 
 @Module({
@@ -71,6 +72,7 @@ import { SocketGateway } from './socket/socket.gateway';
     AuthController,
     ServicesHealthController,
     UsersController,
+    NotificationsController,
   ],
   providers: [
     SocketGateway,

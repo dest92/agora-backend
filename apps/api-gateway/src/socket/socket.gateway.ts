@@ -44,6 +44,10 @@ export class SocketGateway
       this.handleDomainEvent.bind(this),
     );
     await this.eventBus.subscribe('session', this.handleDomainEvent.bind(this));
+    await this.eventBus.subscribe(
+      'notification',
+      this.handleNotificationEvent.bind(this),
+    );
   }
 
   handleConnection(client: Socket): void {
@@ -166,6 +170,25 @@ export class SocketGateway
     // Broadcast to session room (for session-related events)
     if (meta?.sessionId) {
       this.server.to(`room:session:${meta.sessionId}`).emit(name, payload);
+    }
+  }
+
+  private handleNotificationEvent(event: DomainEvent): void {
+    const { name, payload, meta } = event;
+
+    // Prefer recipientId in payload, fall back to meta.userId if present
+    const recipientId = (payload as any)?.recipientId || (meta as any)?.userId;
+    if (recipientId) {
+      console.log(`🔔 Sending notification to user: ${recipientId}`);
+
+      // Emit to all sockets connected by this user
+      const sockets = Array.from(this.server.sockets.sockets.values());
+      sockets.forEach((socket) => {
+        if (socket.data.userId === recipientId) {
+          socket.emit(name, payload);
+          console.log(`✅ Notification sent to socket ${socket.id}`);
+        }
+      });
     }
   }
 }
