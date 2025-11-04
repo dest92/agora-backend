@@ -70,6 +70,11 @@ export class BoardsController {
     return this.boardsService.send('boards.get', { boardId });
   }
 
+  @Get(':boardId/lanes')
+  async getLanes(@Param('boardId', ParseUUIDPipe) boardId: string) {
+    return this.boardsService.send('boards.lanes', { boardId });
+  }
+
   // ===== Card Management =====
   @Post(':boardId/cards')
   @HttpCode(HttpStatus.CREATED)

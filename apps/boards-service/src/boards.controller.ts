@@ -98,4 +98,9 @@ export class BoardsController {
   async getBoard(@Payload() data: { boardId: string }) {
     return this.boardsManagementQueryService.getBoard(data.boardId);
   }
+
+  @MessagePattern('boards.lanes')
+  async getLanes(@Payload() data: { boardId: string }) {
+    return this.boardsManagementQueryService.getLanes(data.boardId);
+  }
 }

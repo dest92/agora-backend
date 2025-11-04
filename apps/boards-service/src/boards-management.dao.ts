@@ -153,4 +153,21 @@ export class BoardsManagementDao {
 
     return data;
   }
+
+  /**
+   * Obtener lanes de un board
+   */
+  async getLanes(boardId: string): Promise<any[]> {
+    const { data, error } = await this.supabase
+      .from('lanes')
+      .select('id, board_id, name, position')
+      .eq('board_id', boardId)
+      .order('position', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to get lanes: ${error.message}`);
+    }
+
+    return data || [];
+  }
 }
