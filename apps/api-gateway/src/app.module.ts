@@ -31,7 +31,7 @@ import { SocketGateway } from './socket/socket.gateway';
         name: 'BOARDS_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
+          host: process.env.BOARDS_SERVICE_HOST || 'localhost',
           port: parseInt(process.env.BOARDS_PORT || '3011'),
         },
       },
@@ -39,7 +39,7 @@ import { SocketGateway } from './socket/socket.gateway';
         name: 'COLLAB_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
+          host: process.env.COLLAB_SERVICE_HOST || 'localhost',
           port: parseInt(process.env.COLLAB_PORT || '3012'),
         },
       },
@@ -47,7 +47,7 @@ import { SocketGateway } from './socket/socket.gateway';
         name: 'SESSIONS_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
+          host: process.env.SESSIONS_SERVICE_HOST || 'localhost',
           port: parseInt(process.env.SESSIONS_PORT || '3013'),
         },
       },
@@ -55,7 +55,7 @@ import { SocketGateway } from './socket/socket.gateway';
         name: 'NOTIFICATIONS_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
+          host: process.env.NOTIFICATIONS_SERVICE_HOST || 'localhost',
           port: parseInt(process.env.NOTIFICATIONS_PORT || '3014'),
         },
       },
