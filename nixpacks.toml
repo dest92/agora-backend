@@ -5,7 +5,7 @@ nixPkgs = ["nodejs_20"]
 cmds = ["npm ci --prefer-offline --no-audit --cache /tmp/npm-cache"]
 
 [phases.build]
-cmds = ["npm run build:all"]
+cmds = ["rm -rf node_modules/.cache", "npm run build:all"]
 
 [start]
 cmd = "node dist/apps/api-gateway/main.js"
