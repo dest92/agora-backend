@@ -1,0 +1,57 @@
+meta {
+  name: Create Lane
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/boards/:boardId/lanes
+  body: json
+  auth: bearer
+}
+
+params:path {
+  boardId: {{board_id}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+    "name": "In Progress"
+  }
+}
+
+vars:pre-request {
+  board_id: your-board-uuid-here
+}
+
+docs {
+  # Create Lane (Column)
+  
+  Creates a new lane (column) in a board.
+  
+  ## Request Body
+  ```json
+  {
+    "name": "Column Name"
+  }
+  ```
+  
+  ## Response
+  ```json
+  {
+    "id": "lane-uuid",
+    "boardId": "board-uuid",
+    "name": "Column Name",
+    "position": 3
+  }
+  ```
+  
+  ## Notes
+  - Position is automatically calculated based on existing lanes
+  - Lanes appear in order from left to right based on position
+  - No limit on the number of lanes per board
+}

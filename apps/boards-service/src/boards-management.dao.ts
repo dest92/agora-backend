@@ -207,4 +207,119 @@ export class BoardsManagementDao {
 
     return (data as LaneRow[]) || [];
   }
+
+  /**
+   * Crear una nueva lane en un board
+   */
+  async createLane(boardId: string, name: string): Promise<LaneRow> {
+    // Obtener la última posición
+    const { data: existingLanes } = await this.supabase
+      .from('lanes')
+      .select('position')
+      .eq('board_id', boardId)
+      .order('position', { ascending: false })
+      .limit(1);
+
+    const nextPosition =
+      existingLanes && existingLanes.length > 0
+        ? existingLanes[0].position + 1
+        : 0;
+
+    const { data, error } = await this.supabase
+      .from('lanes')
+      .insert({
+        board_id: boardId,
+        name: name,
+        position: nextPosition,
+      })
+      .select('id, board_id, name, position')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create lane: ${error.message}`);
+    }
+
+    return data as LaneRow;
+  }
+
+  /**
+   * Actualizar posición de una lane
+   */
+  async updateLanePosition(
+    laneId: string,
+    position: number,
+  ): Promise<{ boardId: string }> {
+    // Primero obtener el board_id
+    const { data: lane } = await this.supabase
+      .from('lanes')
+      .select('board_id')
+      .eq('id', laneId)
+      .single();
+
+    if (!lane) {
+      throw new Error('Lane not found');
+    }
+
+    const { error } = await this.supabase
+      .from('lanes')
+      .update({ position })
+      .eq('id', laneId);
+
+    if (error) {
+      throw new Error(`Failed to update lane position: ${error.message}`);
+    }
+
+    return { boardId: lane.board_id };
+  }
+
+  /**
+   * Borrar una lane
+   * También borra todas las cards que pertenecen a esa lane
+   */
+  async deleteLane(laneId: string): Promise<{ boardId: string }> {
+    // Primero obtener la lane para saber su board_id
+    const { data: lane } = await this.supabase
+      .from('lanes')
+      .select('board_id')
+      .eq('id', laneId)
+      .single();
+
+    if (!lane) {
+      throw new Error('Lane not found');
+    }
+
+    // Obtener todas las cards de esta lane
+    const { data: cards } = await this.supabase
+      .from('cards')
+      .select('id')
+      .eq('lane_id', laneId);
+
+    if (cards && cards.length > 0) {
+      const cardIds = cards.map((c) => c.id);
+
+      // Borrar relaciones de las cards
+      await this.supabase.from('votes').delete().in('card_id', cardIds);
+      await this.supabase
+        .from('card_assignees')
+        .delete()
+        .in('card_id', cardIds);
+      await this.supabase.from('card_tags').delete().in('card_id', cardIds);
+      await this.supabase.from('comments').delete().in('card_id', cardIds);
+
+      // Borrar las cards
+      await this.supabase.from('cards').delete().in('id', cardIds);
+    }
+
+    // Finalmente borrar la lane
+    const { error } = await this.supabase
+      .from('lanes')
+      .delete()
+      .eq('id', laneId);
+
+    if (error) {
+      throw new Error(`Failed to delete lane: ${error.message}`);
+    }
+
+    return { boardId: lane.board_id };
+  }
 }

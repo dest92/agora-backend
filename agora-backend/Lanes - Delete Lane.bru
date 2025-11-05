@@ -1,0 +1,37 @@
+meta {
+  name: Lanes - Delete Lane
+  type: http
+  seq: 3
+}
+
+delete {
+  url: http://localhost:3000/boards/:boardId/lanes/:laneId
+  body: none
+  auth: bearer
+}
+
+params:path {
+  boardId: {{boardId}}
+  laneId: {{laneId}}
+}
+
+auth:bearer {
+  token: {{jwtToken}}
+}
+
+script:pre-request {
+  // Use the boardId and laneId from environment
+  // Make sure to set these in the Bruno environment before testing
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log("Lane deleted successfully");
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

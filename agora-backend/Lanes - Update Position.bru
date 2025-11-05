@@ -1,0 +1,63 @@
+meta {
+  name: Update Lane Position
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{base_url}}/boards/:boardId/lanes/:laneId/position
+  body: json
+  auth: bearer
+}
+
+params:path {
+  boardId: {{board_id}}
+  laneId: {{lane_id}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+    "position": 0
+  }
+}
+
+vars:pre-request {
+  board_id: your-board-uuid-here
+  lane_id: your-lane-uuid-here
+}
+
+docs {
+  # Update Lane Position
+  
+  Updates the position (order) of a lane in a board.
+  
+  ## Request Body
+  ```json
+  {
+    "position": 0
+  }
+  ```
+  
+  Position is 0-indexed. Lower positions appear first (left).
+  
+  ## Response
+  ```json
+  {
+    "updated": true
+  }
+  ```
+  
+  ## Use Case
+  - Reorder columns by drag and drop
+  - Multiple lanes can be updated in sequence
+  - After reordering, reload lanes to see updated order
+  
+  ## Notes
+  - Position 0 = leftmost column
+  - Position increments from left to right
+  - When reordering, update all affected lanes
+}
