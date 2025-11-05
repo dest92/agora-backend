@@ -1,0 +1,42 @@
+meta {
+  name: Delete Workspace
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/workspaces/:workspaceId
+  body: none
+  auth: bearer
+}
+
+params:path {
+  workspaceId: {{workspace_id}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+vars:pre-request {
+  workspace_id: your-workspace-uuid-here
+}
+
+docs {
+  # Delete Workspace
+  
+  Deletes a workspace. Only the workspace owner can delete a workspace.
+  
+  ## Requirements
+  - User must be authenticated
+  - User must be the workspace owner
+  
+  ## Response
+  - `200 OK` with `{ deleted: true }` if successful
+  - `403 Forbidden` if user is not the owner
+  - `404 Not Found` if workspace doesn't exist
+  
+  ## Notes
+  - This will cascade delete all related data (boards, memberships, etc.)
+  - This operation cannot be undone
+}
