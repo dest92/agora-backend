@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import type { EventBus, DomainEvent } from '@app/lib-events';
 import { createClient } from '@supabase/supabase-js';
@@ -12,8 +17,8 @@ export class NotificationsSubscriber implements OnModuleInit {
     private readonly notificationsService: NotificationsService,
   ) {
     this.supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
       {
         auth: {
           autoRefreshToken: false,
@@ -33,6 +38,7 @@ export class NotificationsSubscriber implements OnModuleInit {
     await this.eventBus.subscribe('vote', this.handleEvent.bind(this));
     await this.eventBus.subscribe('tag', this.handleEvent.bind(this));
     await this.eventBus.subscribe('assignee', this.handleEvent.bind(this));
+    await this.eventBus.subscribe('workspace', this.handleEvent.bind(this));
   }
 
   private async handleEvent(event: DomainEvent): Promise<void> {
@@ -44,15 +50,17 @@ export class NotificationsSubscriber implements OnModuleInit {
     });
 
     try {
-      // Handle comment created - notify card author
       if (event.name === 'comment:created') {
         await this.handleCommentCreated(event);
+      }
+
+      if (event.name === 'workspace:memberAdded') {
+        await this.handleWorkspaceInvitation(event);
       }
 
       // TODO: Handle other events
       // - card:assigned -> notify assignee
       // - vote:added -> notify card author
-      // - workspace:member_invited -> notify invited user
     } catch (error) {
       console.error('[NOTIFICATION] Error handling event:', error);
     }
@@ -61,7 +69,7 @@ export class NotificationsSubscriber implements OnModuleInit {
   private async handleCommentCreated(event: DomainEvent): Promise<void> {
     const { cardId, authorId, content } = event.payload as any;
 
-    console.log('💬 Comment created, finding card author...');
+    console.log('Comment created, finding card author...');
 
     // Get card info to find the card author
     const { data: card, error } = await this.supabase
@@ -71,7 +79,7 @@ export class NotificationsSubscriber implements OnModuleInit {
       .single();
 
     if (error || !card) {
-      console.error('❌ Failed to find card:', error);
+      console.error('Failed to find card:', error);
       return;
     }
 
@@ -79,7 +87,7 @@ export class NotificationsSubscriber implements OnModuleInit {
 
     // Don't notify if author comments on own card
     if (cardAuthorId === authorId) {
-      console.log('⏭️ Author commented on own card, skipping notification');
+      console.log('Author commented on own card, skipping notification');
       return;
     }
 
@@ -109,6 +117,66 @@ export class NotificationsSubscriber implements OnModuleInit {
       },
     });
 
-    console.log(`✅ Notification sent to card author: ${cardAuthorId}`);
+    console.log(`Notification sent to card author: ${cardAuthorId}`);
+  }
+
+  private async handleWorkspaceInvitation(event: DomainEvent): Promise<void> {
+    const { workspaceId, userId, addedBy } = event.payload as any;
+
+    console.log('Workspace invitation, notifying user...', {
+      workspaceId,
+      userId,
+      addedBy,
+    });
+
+    // Don't notify if user added themselves
+    if (userId === addedBy) {
+      console.log('User added themselves, skipping notification');
+      return;
+    }
+
+    // Get workspace info
+    const { data: workspace, error: workspaceError } = await this.supabase
+      .from('workspaces')
+      .select('name, created_by')
+      .eq('id', workspaceId)
+      .single();
+
+    if (workspaceError || !workspace) {
+      console.error('Failed to find workspace:', workspaceError);
+      return;
+    }
+
+    // Get inviter info
+    const { data: authData } = await this.supabase.auth.admin.listUsers();
+    const inviter = authData?.users?.find((u: any) => u.id === addedBy);
+    const inviterName =
+      inviter?.user_metadata?.name ||
+      inviter?.email?.split('@')[0] ||
+      'Someone';
+
+    // Create notification
+    const notification = await this.notificationsService.createNotification({
+      userId: userId,
+      type: 'workspace_invitation',
+      title: `Invited to workspace: ${workspace.name}`,
+      body: `${inviterName} invited you to join the workspace "${workspace.name}". You can now access all boards in this workspace.`,
+    });
+
+    // Emit real-time event for the notification
+    await this.eventBus.publish({
+      name: 'notification:created',
+      payload: {
+        ...notification,
+        recipientId: userId,
+        workspaceId: workspaceId,
+        workspaceName: workspace.name,
+      },
+      meta: {
+        occurredAt: new Date().toISOString(),
+      },
+    });
+
+    console.log(`Workspace invitation notification sent to user: ${userId}`);
   }
 }

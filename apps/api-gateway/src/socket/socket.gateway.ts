@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-floating-promises */
+
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -26,6 +31,9 @@ export class SocketGateway
 
   // Track connected users per board
   private boardUsers: Map<string, Set<string>> = new Map();
+
+  // Track connected users per workspace
+  private workspaceUsers: Map<string, Set<string>> = new Map();
 
   constructor(@Inject('EventBus') private readonly eventBus: EventBus) {}
 
@@ -74,7 +82,10 @@ export class SocketGateway
         if (!this.boardUsers.has(boardId)) {
           this.boardUsers.set(boardId, new Set());
         }
-        this.boardUsers.get(boardId)!.add(userId);
+        const boardUserSet = this.boardUsers.get(boardId);
+        if (boardUserSet) {
+          boardUserSet.add(userId);
+        }
 
         // Emit presence update to all clients in the board
         this.emitPresenceUpdate(boardId);
@@ -83,6 +94,21 @@ export class SocketGateway
     if (workspaceId) {
       client.join(`room:workspace:${workspaceId}`);
       console.log(`Client ${client.id} joined workspace ${workspaceId}`);
+
+      // Track user presence in workspace
+      if (userId) {
+        client.data.workspaceId = workspaceId;
+        if (!this.workspaceUsers.has(workspaceId)) {
+          this.workspaceUsers.set(workspaceId, new Set());
+        }
+        const workspaceUserSet = this.workspaceUsers.get(workspaceId);
+        if (workspaceUserSet) {
+          workspaceUserSet.add(userId);
+        }
+
+        // Emit presence update to all clients in the workspace
+        this.emitWorkspacePresenceUpdate(workspaceId);
+      }
     }
     if (sessionId) {
       client.join(`room:session:${sessionId}`);
@@ -93,6 +119,7 @@ export class SocketGateway
   handleDisconnect(client: Socket): void {
     const userId = client.data.userId;
     const boardId = client.data.boardId;
+    const workspaceId = client.data.workspaceId;
 
     console.log(`Client ${client.id} (user: ${userId}) disconnected`);
 
@@ -111,6 +138,22 @@ export class SocketGateway
         this.emitPresenceUpdate(boardId);
       }
     }
+
+    // Remove user from workspace presence
+    if (workspaceId && userId) {
+      const workspaceUserSet = this.workspaceUsers.get(workspaceId);
+      if (workspaceUserSet) {
+        workspaceUserSet.delete(userId);
+
+        // Clean up empty sets
+        if (workspaceUserSet.size === 0) {
+          this.workspaceUsers.delete(workspaceId);
+        }
+
+        // Emit presence update
+        this.emitWorkspacePresenceUpdate(workspaceId);
+      }
+    }
   }
 
   private emitPresenceUpdate(boardId: string): void {
@@ -119,17 +162,53 @@ export class SocketGateway
     console.log(`Presence update for board ${boardId}:`, users);
   }
 
+  private emitWorkspacePresenceUpdate(workspaceId: string): void {
+    const users = Array.from(this.workspaceUsers.get(workspaceId) || []);
+    this.server
+      .to(`room:workspace:${workspaceId}`)
+      .emit('workspace:presence:update', { users });
+    console.log(`Presence update for workspace ${workspaceId}:`, users);
+  }
+
   @SubscribeMessage('join')
   handleJoin(
     @ConnectedSocket() client: Socket,
     @MessageBody()
     data: { boardId?: string; workspaceId?: string; sessionId?: string },
   ): void {
+    const userId = client.data.userId;
+
     if (data.boardId) {
       client.join(`room:board:${data.boardId}`);
+
+      // Track user presence in board
+      if (userId) {
+        client.data.boardId = data.boardId;
+        if (!this.boardUsers.has(data.boardId)) {
+          this.boardUsers.set(data.boardId, new Set());
+        }
+        const boardUserSet = this.boardUsers.get(data.boardId);
+        if (boardUserSet) {
+          boardUserSet.add(userId);
+        }
+        this.emitPresenceUpdate(data.boardId);
+      }
     }
     if (data.workspaceId) {
       client.join(`room:workspace:${data.workspaceId}`);
+
+      // Track user presence in workspace
+      if (userId) {
+        client.data.workspaceId = data.workspaceId;
+        if (!this.workspaceUsers.has(data.workspaceId)) {
+          this.workspaceUsers.set(data.workspaceId, new Set());
+        }
+        const workspaceUserSet = this.workspaceUsers.get(data.workspaceId);
+        if (workspaceUserSet) {
+          workspaceUserSet.add(userId);
+        }
+        this.emitWorkspacePresenceUpdate(data.workspaceId);
+      }
     }
     if (data.sessionId) {
       client.join(`room:session:${data.sessionId}`);
@@ -142,11 +221,37 @@ export class SocketGateway
     @MessageBody()
     data: { boardId?: string; workspaceId?: string; sessionId?: string },
   ): void {
+    const userId = client.data.userId;
+
     if (data.boardId) {
       client.leave(`room:board:${data.boardId}`);
+
+      // Remove user from board presence
+      if (userId) {
+        const boardUserSet = this.boardUsers.get(data.boardId);
+        if (boardUserSet) {
+          boardUserSet.delete(userId);
+          if (boardUserSet.size === 0) {
+            this.boardUsers.delete(data.boardId);
+          }
+        }
+        this.emitPresenceUpdate(data.boardId);
+      }
     }
     if (data.workspaceId) {
       client.leave(`room:workspace:${data.workspaceId}`);
+
+      // Remove user from workspace presence
+      if (userId) {
+        const workspaceUserSet = this.workspaceUsers.get(data.workspaceId);
+        if (workspaceUserSet) {
+          workspaceUserSet.delete(userId);
+          if (workspaceUserSet.size === 0) {
+            this.workspaceUsers.delete(data.workspaceId);
+          }
+        }
+        this.emitWorkspacePresenceUpdate(data.workspaceId);
+      }
     }
     if (data.sessionId) {
       client.leave(`room:session:${data.sessionId}`);
