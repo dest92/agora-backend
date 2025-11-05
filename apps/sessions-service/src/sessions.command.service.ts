@@ -300,4 +300,45 @@ export class SessionsCommandService {
 
     return { updated: true };
   }
+
+  /**
+   * Borrar workspace
+   * TCP Contract: { cmd: 'workspaces.delete' } → { deleted: boolean }
+   * Domain Event: workspace:deleted
+   * Solo el owner puede borrar el workspace
+   */
+  async deleteWorkspace(params: {
+    workspaceId: string;
+    requestedBy: string;
+  }): Promise<{ deleted: boolean }> {
+    // Verificar que el usuario solicitante sea owner
+    const isOwner = await this.workspacesDao.isWorkspaceOwner(
+      params.workspaceId,
+      params.requestedBy,
+    );
+
+    if (!isOwner) {
+      throw new Error('Only workspace owners can delete the workspace');
+    }
+
+    // Borrar el workspace
+    await this.workspacesDao.deleteWorkspace(params.workspaceId);
+
+    // Publicar evento de dominio
+    const event: DomainEvent = {
+      name: 'workspace:deleted',
+      payload: {
+        workspaceId: params.workspaceId,
+        deletedBy: params.requestedBy,
+      },
+      meta: {
+        workspaceId: params.workspaceId,
+        occurredAt: new Date().toISOString(),
+      } as any,
+    };
+
+    await this.eventBus.publish(event);
+
+    return { deleted: true };
+  }
 }

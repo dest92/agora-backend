@@ -134,6 +134,23 @@ export class BoardsController {
     return this.boardsManagementQueryService.getLanes(data.boardId);
   }
 
+  @MessagePattern('boards.lanes.create')
+  async createLane(@Payload() data: { boardId: string; name: string }) {
+    return this.boardsManagementCommandService.createLane(data);
+  }
+
+  @MessagePattern('boards.lanes.updatePosition')
+  async updateLanePosition(
+    @Payload() data: { laneId: string; position: number },
+  ) {
+    return this.boardsManagementCommandService.updateLanePosition(data);
+  }
+
+  @MessagePattern('boards.lanes.delete')
+  async deleteLane(@Payload() data: { laneId: string }) {
+    return this.boardsManagementCommandService.deleteLane(data);
+  }
+
   // ===== Votes Endpoints =====
 
   @MessagePattern('votes.vote')

@@ -18,12 +18,12 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule);
-  
+
   // Observer/Pub-Sub: Socket.IO with Redis adapter for horizontal scaling
   const redisIoAdapter = new RedisIoAdapter(app);
   await redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
-  
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -42,16 +42,20 @@ async function bootstrap() {
   console.log(`API Gateway (HTTP + Socket.IO) listening on port ${port}`);
 
   // Graceful Shutdown: Handle process termination signals
-  process.on('SIGTERM', async () => {
-    console.log('SIGTERM received, shutting down gracefully...');
-    await app.close();
-    process.exit(0);
+  process.on('SIGTERM', () => {
+    void (async () => {
+      console.log('SIGTERM received, shutting down gracefully...');
+      await app.close();
+      process.exit(0);
+    })();
   });
 
-  process.on('SIGINT', async () => {
-    console.log('SIGINT received, shutting down gracefully...');
-    await app.close();
-    process.exit(0);
+  process.on('SIGINT', () => {
+    void (async () => {
+      console.log('SIGINT received, shutting down gracefully...');
+      await app.close();
+      process.exit(0);
+    })();
   });
 }
 bootstrap();

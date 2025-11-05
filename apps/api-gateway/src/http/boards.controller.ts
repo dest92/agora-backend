@@ -48,6 +48,16 @@ class CreateBoardDto {
   title!: string;
 }
 
+class CreateLaneDto {
+  @IsString()
+  name!: string;
+}
+
+class UpdateLanePositionDto {
+  @IsNumber()
+  position!: number;
+}
+
 @Controller('boards')
 export class BoardsController {
   constructor(
@@ -88,6 +98,42 @@ export class BoardsController {
   @Get(':boardId/lanes')
   getLanes(@Param('boardId', ParseUUIDPipe) boardId: string) {
     return this.boardsService.send('boards.lanes', { boardId });
+  }
+
+  @Post(':boardId/lanes')
+  @HttpCode(HttpStatus.CREATED)
+  createLane(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Body() dto: CreateLaneDto,
+  ) {
+    return this.boardsService.send('boards.lanes.create', {
+      boardId,
+      name: dto.name,
+    });
+  }
+
+  @Patch(':boardId/lanes/:laneId/position')
+  @HttpCode(HttpStatus.OK)
+  updateLanePosition(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('laneId', ParseUUIDPipe) laneId: string,
+    @Body() dto: UpdateLanePositionDto,
+  ) {
+    return this.boardsService.send('boards.lanes.updatePosition', {
+      laneId,
+      position: dto.position,
+    });
+  }
+
+  @Delete(':boardId/lanes/:laneId')
+  @HttpCode(HttpStatus.OK)
+  deleteLane(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Param('laneId', ParseUUIDPipe) laneId: string,
+  ) {
+    return this.boardsService.send('boards.lanes.delete', {
+      laneId,
+    });
   }
 
   // ===== Card Management =====

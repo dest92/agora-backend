@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -148,6 +149,25 @@ export class WorkspacesController {
         workspaceId,
         userId,
         role: dto.role,
+        requestedBy: req.user.userId,
+      },
+    );
+  }
+
+  /**
+   * DELETE /workspaces/:workspaceId
+   * Delete workspace (only owners can do this)
+   */
+  @Delete(':workspaceId')
+  @HttpCode(HttpStatus.OK)
+  async deleteWorkspace(
+    @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
+    @Request() req: any,
+  ) {
+    return this.sessionsService.send(
+      { cmd: 'workspaces.delete' },
+      {
+        workspaceId,
         requestedBy: req.user.userId,
       },
     );

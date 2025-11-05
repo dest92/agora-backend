@@ -295,11 +295,24 @@ export class WorkspacesDao {
 
   /**
    * Verificar si un usuario es owner de un workspace
+   * Verifica tanto en created_by de workspaces como en workspace_memberships
    */
   async isWorkspaceOwner(
     workspaceId: string,
     userId: string,
   ): Promise<boolean> {
+    // Primero verificar si es el creador del workspace
+    const { data: workspace, error: workspaceError } = await this.supabase
+      .from('workspaces')
+      .select('created_by')
+      .eq('id', workspaceId)
+      .single();
+
+    if (!workspaceError && workspace && workspace.created_by === userId) {
+      return true;
+    }
+
+    // Si no es el creador, verificar en workspace_memberships
     const { data, error } = await this.supabase
       .from('workspace_memberships')
       .select('role')
@@ -330,5 +343,111 @@ export class WorkspacesDao {
     }
 
     return data || [];
+  }
+
+  /**
+   * Borrar un workspace
+   * Solo el owner puede borrar el workspace
+   * Borra en cascada: boards → cards → tags/assignees/comments/votes
+   */
+  async deleteWorkspace(workspaceId: string): Promise<void> {
+    console.log('🗑️ Deleting workspace:', workspaceId);
+
+    // 1. Obtener todos los boards del workspace
+    const { data: boards, error: boardsError } = await this.supabase
+      .from('boards')
+      .select('id')
+      .eq('workspace_id', workspaceId);
+
+    if (boardsError) {
+      console.error('❌ Failed to fetch boards:', boardsError);
+      throw new Error(`Failed to fetch boards: ${boardsError.message}`);
+    }
+
+    console.log(`📋 Found ${boards?.length || 0} boards to delete`);
+
+    // 2. Para cada board, borrar sus cards y relaciones
+    if (boards && boards.length > 0) {
+      for (const board of boards) {
+        console.log(`🗑️ Deleting board ${board.id}...`);
+
+        // 2.1. Obtener todas las cards del board
+        const { data: cards } = await this.supabase
+          .from('cards')
+          .select('id')
+          .eq('board_id', board.id);
+
+        if (cards && cards.length > 0) {
+          const cardIds = cards.map((c) => c.id);
+          console.log(`📝 Deleting ${cardIds.length} cards...`);
+
+          // 2.2. Borrar relaciones de las cards
+          // Borrar votes
+          await this.supabase.from('votes').delete().in('card_id', cardIds);
+
+          // Borrar assignees
+          await this.supabase
+            .from('card_assignees')
+            .delete()
+            .in('card_id', cardIds);
+
+          // Borrar tags
+          await this.supabase.from('card_tags').delete().in('card_id', cardIds);
+
+          // Borrar comments
+          await this.supabase.from('comments').delete().in('card_id', cardIds);
+
+          // 2.3. Borrar las cards
+          await this.supabase.from('cards').delete().in('id', cardIds);
+        }
+
+        // 2.4. Borrar tags del board
+        await this.supabase.from('tags').delete().eq('board_id', board.id);
+
+        // 2.5. Borrar el board
+        await this.supabase.from('boards').delete().eq('id', board.id);
+      }
+    }
+
+    // 3. Borrar workspace_memberships
+    console.log('👥 Deleting workspace memberships...');
+    await this.supabase
+      .from('workspace_memberships')
+      .delete()
+      .eq('workspace_id', workspaceId);
+
+    // 4. Borrar sessions del workspace
+    console.log('🎯 Deleting workspace sessions...');
+    const { data: sessions } = await this.supabase
+      .from('sessions')
+      .select('id')
+      .eq('workspace_id', workspaceId);
+
+    if (sessions && sessions.length > 0) {
+      const sessionIds = sessions.map((s) => s.id);
+
+      // Borrar session_participants
+      await this.supabase
+        .from('session_participants')
+        .delete()
+        .in('session_id', sessionIds);
+
+      // Borrar sessions
+      await this.supabase.from('sessions').delete().in('id', sessionIds);
+    }
+
+    // 5. Finalmente, borrar el workspace
+    console.log('🏢 Deleting workspace...');
+    const { error } = await this.supabase
+      .from('workspaces')
+      .delete()
+      .eq('id', workspaceId);
+
+    if (error) {
+      console.error('❌ Failed to delete workspace:', error);
+      throw new Error(`Failed to delete workspace: ${error.message}`);
+    }
+
+    console.log('✅ Workspace deleted successfully');
   }
 }

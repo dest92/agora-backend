@@ -85,6 +85,15 @@ export class SessionsController {
   }
 
   /**
+   * TCP Contract: workspaces.delete
+   * Gateway → { cmd: 'workspaces.delete', workspaceId, requestedBy }
+   */
+  @MessagePattern({ cmd: 'workspaces.delete' })
+  async deleteWorkspace(data: { workspaceId: string; requestedBy: string }) {
+    return this.commandService.deleteWorkspace(data);
+  }
+
+  /**
    * TCP Contract: sessions.create
    * Gateway → { cmd: 'sessions.create', workspaceId, title }
    */
