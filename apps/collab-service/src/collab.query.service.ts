@@ -23,8 +23,22 @@ export class CollabQueryService {
    */
   async listTags(params: { boardId: string }): Promise<Tag[]> {
     const tagRows = await this.tagsDao.tagsList(params.boardId);
-    
-    return tagRows.map(row => ({
+
+    return tagRows.map((row) => ({
+      id: row.id,
+      boardId: row.board_id,
+      label: row.label,
+      color: row.color,
+    }));
+  }
+
+  /**
+   * Obtener tags de una card
+   * TCP Contract: { cmd: 'tags.getCardTags' } → Tag[]
+   */
+  async getCardTags(params: { cardId: string }): Promise<Tag[]> {
+    const tagRows = await this.tagsDao.getCardTags(params.cardId);
+    return tagRows.map((row) => ({
       id: row.id,
       boardId: row.board_id,
       label: row.label,

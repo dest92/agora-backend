@@ -126,4 +126,26 @@ export class TagsDao {
       throw new Error(`Failed to unassign tag: ${error.message}`);
     }
   }
+
+  /**
+   * Obtener tags de una card específica
+   */
+  async getCardTags(cardId: string): Promise<TagRow[]> {
+    const { data, error } = await this.supabase
+      .from('card_tags')
+      .select('tag_id, tags(id, board_id, label, color)')
+      .eq('card_id', cardId);
+
+    if (error) {
+      throw new Error(`Failed to get card tags: ${error.message}`);
+    }
+
+    // Transform nested structure to flat TagRow array
+    return (data || []).map((item: any) => ({
+      id: item.tags.id,
+      board_id: item.tags.board_id,
+      label: item.tags.label,
+      color: item.tags.color,
+    }));
+  }
 }

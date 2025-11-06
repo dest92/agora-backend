@@ -54,6 +54,15 @@ export class TagsController {
   }
 
   /**
+   * GET /boards/:boardId/cards/:cardId/tags
+   * Contract: → Tag[]
+   */
+  @Get('cards/:cardId/tags')
+  async getCardTags(@Param('cardId') cardId: string) {
+    return this.collabService.send({ cmd: 'tags.getCardTags' }, { cardId });
+  }
+
+  /**
    * POST /boards/:boardId/cards/:cardId/tags/:tagId
    * Contract: → { assigned: boolean }
    */

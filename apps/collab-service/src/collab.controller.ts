@@ -20,11 +20,7 @@ export class CollabController {
    * Gateway → { cmd: 'tags.create', boardId, label, color? }
    */
   @MessagePattern({ cmd: 'tags.create' })
-  async createTag(data: {
-    boardId: string;
-    label: string;
-    color?: string;
-  }) {
+  async createTag(data: { boardId: string; label: string; color?: string }) {
     return this.commandService.createTag(data);
   }
 
@@ -38,15 +34,20 @@ export class CollabController {
   }
 
   /**
+   * TCP Contract: tags.getCardTags
+   * Gateway → { cmd: 'tags.getCardTags', cardId }
+   */
+  @MessagePattern({ cmd: 'tags.getCardTags' })
+  async getCardTags(data: { cardId: string }) {
+    return this.queryService.getCardTags(data);
+  }
+
+  /**
    * TCP Contract: tags.assign
    * Gateway → { cmd: 'tags.assign', boardId, cardId, tagId }
    */
   @MessagePattern({ cmd: 'tags.assign' })
-  async assignTag(data: {
-    boardId: string;
-    cardId: string;
-    tagId: string;
-  }) {
+  async assignTag(data: { boardId: string; cardId: string; tagId: string }) {
     return this.commandService.assignTag(data);
   }
 
@@ -55,11 +56,7 @@ export class CollabController {
    * Gateway → { cmd: 'tags.unassign', boardId, cardId, tagId }
    */
   @MessagePattern({ cmd: 'tags.unassign' })
-  async unassignTag(data: {
-    boardId: string;
-    cardId: string;
-    tagId: string;
-  }) {
+  async unassignTag(data: { boardId: string; cardId: string; tagId: string }) {
     return this.commandService.unassignTag(data);
   }
 
@@ -68,11 +65,7 @@ export class CollabController {
    * Gateway → { cmd: 'assignees.add', boardId, cardId, userId }
    */
   @MessagePattern({ cmd: 'assignees.add' })
-  async addAssignee(data: {
-    boardId: string;
-    cardId: string;
-    userId: string;
-  }) {
+  async addAssignee(data: { boardId: string; cardId: string; userId: string }) {
     return this.commandService.assigneeAdd(data);
   }
 
