@@ -53,6 +53,7 @@ export class SocketGateway
       this.handleDomainEvent.bind(this),
     );
     await this.eventBus.subscribe('session', this.handleDomainEvent.bind(this));
+    await this.eventBus.subscribe('chat', this.handleDomainEvent.bind(this));
     await this.eventBus.subscribe(
       'notification',
       this.handleNotificationEvent.bind(this),

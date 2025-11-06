@@ -15,6 +15,8 @@ import { VotesQueryService } from './votes.query.service';
 import { AssigneesDao } from './assignees.dao';
 import { AssigneesCommandService } from './assignees.command.service';
 import { AssigneesQueryService } from './assignees.query.service';
+import { ChatDao } from './chat.dao';
+import { ChatService } from './chat.service';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), PgModule, EventsModule],
@@ -32,6 +34,8 @@ import { AssigneesQueryService } from './assignees.query.service';
     AssigneesDao,
     AssigneesCommandService,
     AssigneesQueryService,
+    ChatDao,
+    ChatService,
   ],
 })
 export class BoardsModule {}
