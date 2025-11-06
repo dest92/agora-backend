@@ -47,6 +47,7 @@ export class SocketGateway
       'assignee',
       this.handleDomainEvent.bind(this),
     );
+    await this.eventBus.subscribe('lane', this.handleDomainEvent.bind(this));
     await this.eventBus.subscribe(
       'workspace',
       this.handleDomainEvent.bind(this),
