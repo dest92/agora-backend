@@ -17,6 +17,7 @@ import { AuthController } from './http/auth.controller';
 import { ServicesHealthController } from './http/services-health.controller';
 import { UsersController } from './http/users.controller';
 import { NotificationsController } from './http/notifications.controller';
+import { ChatController } from './http/chat.controller';
 import { SocketGateway } from './socket/socket.gateway';
 
 @Module({
@@ -67,6 +68,7 @@ import { SocketGateway } from './socket/socket.gateway';
     TagsController,
     AssigneesController,
     CommentsController,
+    ChatController,
     WorkspacesController,
     SessionsController,
     AuthController,

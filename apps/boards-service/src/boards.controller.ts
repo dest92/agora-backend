@@ -8,6 +8,7 @@ import { VotesCommandService } from './votes.command.service';
 import { VotesQueryService } from './votes.query.service';
 import { AssigneesCommandService } from './assignees.command.service';
 import { AssigneesQueryService } from './assignees.query.service';
+import { ChatService } from './chat.service';
 
 @Controller()
 export class BoardsController {
@@ -20,6 +21,7 @@ export class BoardsController {
     private readonly votesQueryService: VotesQueryService,
     private readonly assigneesCommandService: AssigneesCommandService,
     private readonly assigneesQueryService: AssigneesQueryService,
+    private readonly chatService: ChatService,
   ) {}
 
   @MessagePattern('cards.create')
@@ -255,5 +257,24 @@ export class BoardsController {
   @MessagePattern('assignees.user')
   async getUserAssignments(@Payload() data: { userId: string }) {
     return this.assigneesQueryService.getUserAssignments(data.userId);
+  }
+
+  @MessagePattern('chat.sendMessage')
+  async sendChatMessage(
+    @Payload() data: { boardId: string; userId: string; content: string },
+  ) {
+    return this.chatService.sendMessage(data.boardId, data.userId, data.content);
+  }
+
+  @MessagePattern('chat.listMessages')
+  async listChatMessages(@Payload() data: { boardId: string; limit: number }) {
+    return this.chatService.listMessages(data.boardId, data.limit);
+  }
+
+  @MessagePattern('chat.deleteMessage')
+  async deleteChatMessage(
+    @Payload() data: { messageId: string; userId: string },
+  ) {
+    return this.chatService.deleteMessage(data.messageId, data.userId);
   }
 }

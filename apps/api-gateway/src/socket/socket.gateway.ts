@@ -53,6 +53,7 @@ export class SocketGateway
       this.handleDomainEvent.bind(this),
     );
     await this.eventBus.subscribe('session', this.handleDomainEvent.bind(this));
+    await this.eventBus.subscribe('chat', this.handleDomainEvent.bind(this));
     await this.eventBus.subscribe(
       'notification',
       this.handleNotificationEvent.bind(this),
@@ -262,20 +263,41 @@ export class SocketGateway
   private handleDomainEvent(event: DomainEvent): void {
     const { name, payload, meta } = event;
 
+    console.log(`📡 [GATEWAY] Handling event: ${name}`, {
+      boardId: meta?.boardId,
+      workspaceId: meta?.workspaceId,
+      sessionId: meta?.sessionId,
+    });
+
     // Observer Pattern: Broadcast to appropriate rooms
     // Broadcast to board room
     if (meta?.boardId) {
-      this.server.to(`room:board:${meta.boardId}`).emit(name, payload);
+      const room = `room:board:${meta.boardId}`;
+      const socketsInRoom = this.server.sockets.adapter.rooms.get(room);
+      console.log(
+        `🔊 [GATEWAY] Emitting '${name}' to ${room} (${socketsInRoom?.size || 0} clients)`,
+      );
+      this.server.to(room).emit(name, payload);
     }
 
     // Broadcast to workspace room
     if (meta?.workspaceId) {
-      this.server.to(`room:workspace:${meta.workspaceId}`).emit(name, payload);
+      const room = `room:workspace:${meta.workspaceId}`;
+      const socketsInRoom = this.server.sockets.adapter.rooms.get(room);
+      console.log(
+        `🔊 [GATEWAY] Emitting '${name}' to ${room} (${socketsInRoom?.size || 0} clients)`,
+      );
+      this.server.to(room).emit(name, payload);
     }
 
     // Broadcast to session room (for session-related events)
     if (meta?.sessionId) {
-      this.server.to(`room:session:${meta.sessionId}`).emit(name, payload);
+      const room = `room:session:${meta.sessionId}`;
+      const socketsInRoom = this.server.sockets.adapter.rooms.get(room);
+      console.log(
+        `🔊 [GATEWAY] Emitting '${name}' to ${room} (${socketsInRoom?.size || 0} clients)`,
+      );
+      this.server.to(room).emit(name, payload);
     }
   }
 
