@@ -15,6 +15,7 @@ export interface ChatMessageRow {
 @Injectable()
 export class ChatDao {
   private supabase;
+  private supabaseUsers;
 
   constructor() {
     this.supabase = createClient(
@@ -27,6 +28,21 @@ export class ChatDao {
         },
         db: {
           schema: 'boards',
+        },
+      },
+    );
+
+    // Cliente separado para acceder al schema users
+    this.supabaseUsers = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        db: {
+          schema: 'users',
         },
       },
     );
@@ -51,9 +67,7 @@ export class ChatDao {
         user_id, 
         content, 
         created_at, 
-        updated_at,
-        user_name:users!chat_messages_user_id_fkey(display_name),
-        user_email:users!chat_messages_user_id_fkey(id)
+        updated_at
       `,
       )
       .single();
@@ -62,11 +76,18 @@ export class ChatDao {
       throw new Error(`Failed to create message: ${error.message}`);
     }
 
-    // Flatten the nested user data
+    // Fetch user info separately from users.profiles
+    const { data: userData } = await this.supabaseUsers
+      .from('profiles')
+      .select('display_name, user_id')
+      .eq('user_id', userId)
+      .single();
+
+    // Flatten the data
     const flattenedData = {
       ...data,
-      user_name: data.user_name?.display_name,
-      user_email: data.user_email?.id,
+      user_name: userData?.display_name || null,
+      user_email: userId,
     };
 
     return flattenedData as ChatMessageRow;
@@ -85,8 +106,7 @@ export class ChatDao {
         user_id, 
         content, 
         created_at, 
-        updated_at,
-        user_name:users!chat_messages_user_id_fkey(display_name)
+        updated_at
       `,
       )
       .eq('board_id', boardId)
@@ -97,10 +117,33 @@ export class ChatDao {
       throw new Error(`Failed to list messages: ${error.message}`);
     }
 
-    // Flatten the nested user data for each message
-    const flattenedData = (data || []).map((msg: any) => ({
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Fetch all unique user IDs
+    const userIds = [...new Set(data.map((msg: any) => msg.user_id))];
+
+    // Fetch user profiles for all users
+    const { data: usersData, error: usersError } = await this.supabaseUsers
+      .from('profiles')
+      .select('user_id, display_name')
+      .in('user_id', userIds);
+
+    if (usersError) {
+      console.error('Error fetching user profiles:', usersError);
+    }
+
+    // Create a map for quick lookup
+    const usersMap = new Map();
+    (usersData || []).forEach((user: any) => {
+      usersMap.set(user.user_id, user.display_name);
+    });
+
+    // Flatten the data
+    const flattenedData = data.map((msg: any) => ({
       ...msg,
-      user_name: msg.user_name?.display_name,
+      user_name: usersMap.get(msg.user_id) || null,
     }));
 
     return flattenedData as ChatMessageRow[];
